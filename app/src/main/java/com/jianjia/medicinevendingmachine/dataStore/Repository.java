@@ -899,7 +899,6 @@ public class Repository {
                         String shoppingResult = JSONArray.toJSONString(resultShoppingGoods);
                         XLog.tag(TAG).i("出货完成结果：" + shoppingResult);
                         remoteRepository.sendGoodsShoppingResult(orderNO, String.valueOf(orderState), shoppingResult, (System.currentTimeMillis() / 1000));
-                        remoteRepository.sendErrorCode(0, 0, 0, (System.currentTimeMillis() / 1000));
                         if (orderState != 0) {
                             mDeviceState.postValue(DeviceStateConstant.DEVICE_OUT_GOODS_PART_FAIL);
                         } else {
@@ -915,6 +914,12 @@ public class Repository {
                         outNo = 0;
                         orderState = 0;
                         isOutGoods = false;
+                        TimerManager.delayedTaskTasksOnSecond(1000, new TimerTask() {
+                            @Override
+                            public void run() {
+                                remoteRepository.sendErrorCode(0, 0, 0, (System.currentTimeMillis() / 1000));
+                            }
+                        });
                     } else {
                         outNo += 1;
                         ShoppingGoods shoppingGoods = shoppingGoodsList.get(outNo);
