@@ -82,6 +82,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Timer;
 import java.util.TimerTask;
 
 import javax.inject.Inject;
@@ -103,6 +104,7 @@ public class Repository {
     private final int packageCount = 2;
     private int failCount = 0;
     private boolean isOutGoods = false;
+    private boolean isOutPackage = false;
     private int downLoadCount = 0;
     private MutableLiveData<Integer> mDeviceState;
     private MutableLiveData<String> mTempAndHumValue;
@@ -267,6 +269,8 @@ public class Repository {
                         if (lShoppingGoodsList.size() == productCount) {
                             shoppingGoods(orderNo, lShoppingGoodsList, resultShoppingGoodsList);
                         } else if (orderNo.equals("888888888888888888") && !lShoppingGoodsList.isEmpty()) {
+                            deviceState = DeviceStateConstant.DEVICE_OUTING_GOODS;
+                            mDeviceState.postValue(DeviceStateConstant.DEVICE_OUTING_GOODS);
                             ShoppingGoods lShoppingGoods = lShoppingGoodsList.get(0);
                             double lIR = lShoppingGoods.getiRC();
                             double lICC = lShoppingGoods.getiCC();
@@ -870,68 +874,98 @@ public class Repository {
         XLog.tag(TAG).i("出货数据：" + shoppingGoodsList);
         ShoppingGoods shoppingGoods = shoppingGoodsList.get(outNo);
         isOutGoods = true;
+        Timer lTimer = new Timer();
         deviceManger.addDeviceDataListener(new OnDataListener() {
+            @Override
+            public void onDataSend(byte[] bytes) {
+                super.onDataSend(bytes);
+                if (isOutGoods) {
+                    lTimer.schedule(new TimerTask() {
+                        @Override
+                        public void run() {
+                            XLog.tag(TAG).i("串口通讯超时");
+                            mDeviceState.postValue(DeviceStateConstant.DEVICE_OUT_GOODS_FAIL);
+                            remoteRepository.sendErrorCode(77, shoppingGoodsList.get(outNo).getLine(), shoppingGoodsList.get(outNo).getColNo(), (System.currentTimeMillis() / 1000));
+                        }
+                    }, 50000);
+                }
+            }
+
             @Override
             public void onDataReceived(byte[] bytes) {
                 super.onDataReceived(bytes);
                 String resultMessage = new String(bytes, StandardCharsets.US_ASCII);
                 XLog.tag(TAG).i("出货返回的数据：" + resultMessage);
-                if (resultMessage.startsWith("res:")) {
-                    String result = resultMessage.replace("res:", "").replace("\r\n", "");
-                    XLog.tag(TAG).i("返回数据是：" + result + "结果");
-                    int resultCode = Integer.parseInt(result);
-                    if (resultCode == 0) {
-                        int line = shoppingGoodsList.get(outNo).getLine();
-                        int colNo = shoppingGoodsList.get(outNo).getColNo();
-                        for (ResultShoppingGoods resultShoppingGood : resultShoppingGoods) {
-                            if (resultShoppingGood.getLine() == line && resultShoppingGood.getColNo() == colNo) {
-                                resultShoppingGood.setSuccessCount(resultShoppingGood.getSuccessCount() + 1);
+                if (isOutGoods) {
+                    lTimer.cancel();
+                    if (resultMessage.startsWith("res:")) {
+                        String result = resultMessage.replace("res:", "").replace("\r\n", "");
+                        XLog.tag(TAG).i("返回数据是：" + result + "结果");
+                        int resultCode = Integer.parseInt(result);
+                        if (resultCode == 0) {
+                            int line = shoppingGoodsList.get(outNo).getLine();
+                            int colNo = shoppingGoodsList.get(outNo).getColNo();
+                            for (ResultShoppingGoods resultShoppingGood : resultShoppingGoods) {
+                                if (resultShoppingGood.getLine() == line && resultShoppingGood.getColNo() == colNo) {
+                                    resultShoppingGood.setSuccessCount(resultShoppingGood.getSuccessCount() + 1);
+                                }
                             }
-                        }
-                    } else {
-                        failCount += 1;
-                        orderState = 1;
-                        int line = shoppingGoodsList.get(outNo).getLine();
-                        int colNo = shoppingGoodsList.get(outNo).getColNo();
-                        for (ResultShoppingGoods resultShoppingGood : resultShoppingGoods) {
-                            if (resultShoppingGood.getLine() == line && resultShoppingGood.getColNo() == colNo) {
-                                resultShoppingGood.setFailCount(resultShoppingGood.getFailCount() + 1);
-                            }
-                        }
-                        remoteRepository.sendErrorCode(resultCode, shoppingGoodsList.get(outNo).getLine(), shoppingGoodsList.get(outNo).getColNo(), (System.currentTimeMillis() / 1000));
-                    }
-                    if (outNo == size - 1 && isOutGoods) {
-                        String shoppingResult = JSONArray.toJSONString(resultShoppingGoods);
-                        XLog.tag(TAG).i("出货完成结果：" + shoppingResult);
-                        remoteRepository.sendGoodsShoppingResult(orderNO, String.valueOf(orderState), shoppingResult, (System.currentTimeMillis() / 1000));
-                        if (orderState != 0) {
-                            mDeviceState.postValue(DeviceStateConstant.DEVICE_OUT_GOODS_PART_FAIL);
                         } else {
-                            mDeviceState.postValue(DeviceStateConstant.DEVICE_OUT_GOODS_SUCCESSFUL);
+                            failCount += 1;
+                            orderState = 1;
+                            int line = shoppingGoodsList.get(outNo).getLine();
+                            int colNo = shoppingGoodsList.get(outNo).getColNo();
+                            for (ResultShoppingGoods resultShoppingGood : resultShoppingGoods) {
+                                if (resultShoppingGood.getLine() == line && resultShoppingGood.getColNo() == colNo) {
+                                    resultShoppingGood.setFailCount(resultShoppingGood.getFailCount() + 1);
+                                }
+                            }
+                            remoteRepository.sendErrorCode(resultCode, shoppingGoodsList.get(outNo).getLine(), shoppingGoodsList.get(outNo).getColNo(), (System.currentTimeMillis() / 1000));
                         }
-                        if (failCount != size) {
-                            getPackage();
-                            failCount = 0;
+                        if (outNo == size - 1 && isOutGoods) {
+                            String shoppingResult = JSONArray.toJSONString(resultShoppingGoods);
+                            XLog.tag(TAG).i("出货完成结果：" + shoppingResult);
+                            remoteRepository.sendGoodsShoppingResult(orderNO, String.valueOf(orderState), shoppingResult, (System.currentTimeMillis() / 1000));
+                            outNo = 0;
+                            orderState = 0;
+                            isOutGoods = false;
+                            if (failCount == 0) {
+                                mDeviceState.postValue(DeviceStateConstant.DEVICE_OUT_GOODS_SUCCESSFUL);
+                                getPackage();
+                            } else if (failCount == size) {
+                                mDeviceState.postValue(DeviceStateConstant.DEVICE_OUT_GOODS_FAIL);
+                            } else {
+                                mDeviceState.postValue(DeviceStateConstant.DEVICE_OUT_GOODS_PART_FAIL);
+                                failCount = 0;
+                                getPackage();
+                            }
+                            TimerManager.delayedTaskTasksOnSecond(1000, new TimerTask() {
+                                @Override
+                                public void run() {
+                                    remoteRepository.sendErrorCode(0, 0, 0, (System.currentTimeMillis() / 1000));
+                                }
+                            });
+                            deviceState = DeviceStateConstant.DEVICE_NORMAL;
+                        } else {
+                            outNo += 1;
+                            ShoppingGoods shoppingGoods = shoppingGoodsList.get(outNo);
+                            double icc = shoppingGoods.getiCC();
+                            double irc = shoppingGoods.getiRC();
+                            XLog.tag(TAG).i("再次出货");
+                            deviceManger.shoppingGoods(irc, icc, 0);
+                        }
+                    }
+                } else if (!isOutPackage) {
+                    if (resultMessage.startsWith("res:")) {
+                        String result = resultMessage.replace("res:", "").replace("\r\n", "");
+                        XLog.tag(TAG).i("返回数据是：" + result + "结果");
+                        int resultCode = Integer.parseInt(result);
+                        if (resultCode == 0) {
+                            mDeviceState.postValue(DeviceStateConstant.DEVICE_OUT_GOODS_SUCCESSFUL);
                         } else {
                             mDeviceState.postValue(DeviceStateConstant.DEVICE_OUT_GOODS_FAIL);
                         }
                         deviceState = DeviceStateConstant.DEVICE_NORMAL;
-                        outNo = 0;
-                        orderState = 0;
-                        isOutGoods = false;
-                        TimerManager.delayedTaskTasksOnSecond(1000, new TimerTask() {
-                            @Override
-                            public void run() {
-                                remoteRepository.sendErrorCode(0, 0, 0, (System.currentTimeMillis() / 1000));
-                            }
-                        });
-                    } else {
-                        outNo += 1;
-                        ShoppingGoods shoppingGoods = shoppingGoodsList.get(outNo);
-                        double icc = shoppingGoods.getiCC();
-                        double irc = shoppingGoods.getiRC();
-                        XLog.tag(TAG).i("再次出货");
-                        deviceManger.shoppingGoods(irc, icc, 0);
                     }
                 }
             }
@@ -942,151 +976,35 @@ public class Repository {
         deviceManger.shoppingGoods(irc, icc, 0);
     }
 
-    public void shoppingGoodsByReturn(String orderNO, List<ShoppingGoods> shoppingGoodsList, List<ResultShoppingGoods> resultShoppingGoods) {
-        mDeviceState.postValue(DeviceStateConstant.DEVICE_OUTING_GOODS);
-        int size = shoppingGoodsList.size();
-        deviceState = DeviceStateConstant.DEVICE_OUTING_GOODS;
-        ShoppingGoods shoppingGoods = shoppingGoodsList.get(outNo);
-        isOutGoods = true;
-        double icc = shoppingGoods.getiCC();
-        double irc = shoppingGoods.getiRC();
-        XLog.tag(TAG).i("开始出货");
-        deviceManger.shoppingGoodsByReturn(irc, icc, 0, new OnReportListener() {
-            @Override
-            public void onSuccess(byte[] bytes, int flag) {
-                super.onSuccess(bytes, flag);
-                String resultMessage = new String(bytes, StandardCharsets.US_ASCII);
-                XLog.tag(TAG).i("出货返回的数据：" + resultMessage);
-                if (resultMessage.startsWith("res:")) {
-                    String result = resultMessage.replace("res:", "").replace("\r\n", "");
-                    XLog.tag(TAG).i("返回数据是：" + result + "结果");
-                    int resultCode = Integer.parseInt(result);
-                    if (resultCode == 0) {
-                        int line = shoppingGoodsList.get(outNo).getLine();
-                        int colNo = shoppingGoodsList.get(outNo).getColNo();
-                        for (ResultShoppingGoods resultShoppingGood : resultShoppingGoods) {
-                            if (resultShoppingGood.getLine() == line && resultShoppingGood.getColNo() == colNo) {
-                                resultShoppingGood.setSuccessCount(resultShoppingGood.getSuccessCount() + 1);
-                            }
-                        }
-                        XLog.tag(TAG).i("出货结果：" + resultShoppingGoods);
-                    } else {
-                        failCount += 1;
-                        orderState = 1;
-                        int line = shoppingGoodsList.get(outNo).getLine();
-                        int colNo = shoppingGoodsList.get(outNo).getColNo();
-                        for (ResultShoppingGoods resultShoppingGood : resultShoppingGoods) {
-                            if (resultShoppingGood.getLine() == line && resultShoppingGood.getColNo() == colNo) {
-                                resultShoppingGood.setFailCount(resultShoppingGood.getFailCount() + 1);
-                            }
-                        }
-                        remoteRepository.sendErrorCode(resultCode, shoppingGoodsList.get(outNo).getLine(), shoppingGoodsList.get(outNo).getColNo(), (System.currentTimeMillis() / 1000));
-                    }
-                    if (outNo == size - 1 && isOutGoods) {
-                        String shoppingResult = JSONArray.toJSONString(resultShoppingGoods);
-                        XLog.tag(TAG).i("出货完成结果：" + shoppingResult);
-                        remoteRepository.sendErrorCode(0, 0, 0, (System.currentTimeMillis() / 1000));
-                        remoteRepository.sendGoodsShoppingResult(orderNO, String.valueOf(orderState), shoppingResult, (System.currentTimeMillis() / 1000));
-                        if (orderState != 0) {
-                            mDeviceState.postValue(DeviceStateConstant.DEVICE_OUT_GOODS_PART_FAIL);
-                        } else {
-                            mDeviceState.postValue(DeviceStateConstant.DEVICE_OUT_GOODS_SUCCESSFUL);
-                        }
-                        if (failCount != size) {
-                            getPackageByReturn();
-                            failCount = 0;
-                        } else {
-                            mDeviceState.postValue(DeviceStateConstant.DEVICE_OUT_GOODS_FAIL);
-                        }
-                        deviceState = DeviceStateConstant.DEVICE_NORMAL;
-                        outNo = 0;
-                        orderState = 0;
-                        isOutGoods = false;
-                    } else {
-                        outNo += 1;
-                        ShoppingGoods shoppingGoods = shoppingGoodsList.get(outNo);
-                        double icc = shoppingGoods.getiCC();
-                        double irc = shoppingGoods.getiRC();
-                        XLog.tag(TAG).i("再次出货");
-                        deviceManger.shoppingGoods(irc, icc, 0);
-                    }
-                }
-            }
-
-
-            @Override
-            public void onFailure(SerialPortError error, int flag) {
-                super.onFailure(error, flag);
-            }
-
-            @Override
-            public void onComplete() {
-                super.onComplete();
-            }
-        });
-    }
-
     private void getPackage() {
         deviceManger.addDeviceDataListener(new OnDataListener() {
             @Override
             public void onDataReceived(byte[] bytes) {
                 super.onDataReceived(bytes);
-                String resultMessage = new String(bytes, StandardCharsets.US_ASCII);
-                XLog.tag(TAG).i("取包装袋返回的数据：" + resultMessage);
-                if (resultMessage.startsWith("res:")) {
-                    String result = resultMessage.replace("res:", "").replace("\r\n", "");
-                    int resultCode = Integer.parseInt(result);
-                    if (resultCode == 0) {
-                        XLog.tag(TAG).i("取包装袋成功");
-                    } else {
-                        XLog.tag(TAG).i("取包装袋失败");
-                        if (packageNo != packageCount) {
-                            packageNo += 1;
-                            deviceManger.shoppingGoods(61, 123, 5);
+                if (isOutPackage) {
+                    String resultMessage = new String(bytes, StandardCharsets.US_ASCII);
+                    XLog.tag(TAG).i("取包装袋返回的数据：" + resultMessage);
+                    if (resultMessage.startsWith("res:")) {
+                        String result = resultMessage.replace("res:", "").replace("\r\n", "");
+                        int resultCode = Integer.parseInt(result);
+                        if (resultCode == 0) {
+                            XLog.tag(TAG).i("取包装袋成功");
                         } else {
-                            packageNo = 1;
+                            XLog.tag(TAG).i("取包装袋失败");
+                            if (packageNo != packageCount) {
+                                packageNo += 1;
+                                deviceManger.shoppingGoods(61, 123, 5);
+                            } else {
+                                packageNo = 1;
+                                isOutPackage = false;
+                            }
                         }
                     }
                 }
             }
         });
+        isOutPackage = true;
         deviceManger.shoppingGoods(39, 123, 5);
-    }
-
-    private void getPackageByReturn() {
-        deviceManger.shoppingGoodsByReturn(39, 123, 5, new OnReportListener() {
-            @Override
-            public void onSuccess(byte[] bytes, int flag) {
-                super.onSuccess(bytes, flag);
-                String resultMessage = new String(bytes, StandardCharsets.US_ASCII);
-                XLog.tag(TAG).i("取包装袋返回的数据：" + resultMessage);
-                if (resultMessage.startsWith("res:")) {
-                    String result = resultMessage.replace("res:", "").replace("\r\n", "");
-                    int resultCode = Integer.parseInt(result);
-                    if (resultCode == 0) {
-                        XLog.tag(TAG).i("取包装袋成功");
-                    } else {
-                        XLog.tag(TAG).i("取包装袋失败");
-                        if (packageNo != packageCount) {
-                            packageNo += 1;
-                            deviceManger.shoppingGoods(61, 123, 5);
-                        } else {
-                            packageNo = 1;
-                        }
-                    }
-                }
-            }
-
-            @Override
-            public void onFailure(SerialPortError error, int flag) {
-                super.onFailure(error, flag);
-            }
-
-            @Override
-            public void onComplete() {
-                super.onComplete();
-            }
-        });
     }
 
     public void timGetTemperatureAndHumidity() {
