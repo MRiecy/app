@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" >
+<meta name="renderer" content="webkit">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="format-detection" content="telephone=no" />
+<title>标题</title>
+<meta name="keywords" content="关键词" />
+<meta name="description" content="描述" />
+<link href="css/swiper.min.css" rel="stylesheet" type="text/css" />
+<link href="css/css.css" rel="stylesheet" type="text/css" />
+<link href="css/media.css" rel="stylesheet" type="text/css" />
+<!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+<!--[if lt IE 9]>
+      <script src="https://cdn.bootcss.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+      <script src="https://cdn.bootcss.com/respond.js/1.4.2/respond.min.js"></script>
+<![endif]-->
+
+</head>
+<body>
+
+
+  
+<!-- <div class="loading">
+	<span class="loadingfa xuanzhuan"><img src="images/loading.png" alt=""></span>
+</div> -->
+
+
+
+<div class="index">
+  <div class="content1">
+    <div class="infor1">
+      <!--<p>2023.01.12 11:36</p>
+      <p>今天：阴7°~12°C 湿度71.0%</p>-->
+    </div>
+    <div class="logo">
+      <img src="images/logo.png" alt="">
+    </div>
+  <!--  <div class="copy">No.M100111 Ver.6.2.9</div>-->
+    <div class="ewm">
+      <div class="imgbox" style="display: none;">
+        <img src="" alt="">
+        <div class="title">扫码购药</div>
+      </div>
+      <div class="telval">
+        <p>服务热线</p>
+        <strong>1858 0629 790</strong>
+      </div>
+    </div>
+    <button class="btn">我要取药</button>
+  </div>
+  <div class="floating" id="swiperBox">
+    <div class="swiper-container">
+      <div class="swiper-wrapper">
+        <div class="swiper-slide">
+          <div class="imgbox">
+            <div class="img pc" style="background: url(images/wapimg1.png) no-repeat center center;"></div>
+            <div class="img wap" style="background: url(images/wapimg1.png) no-repeat center center;"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+<div class="bottomMenu">
+  <div class="content">
+    <div class="close" ></div>
+    <div class="title" id="kitty">请输入取货码</div>
+    <div class="center">
+      <div class="valWrap"><input type="text"  id="val" class="val" maxlength="6"  readonly="readonly"></div>
+      <div class="list">
+        <ul>
+          <li>
+            <input type="button" value="1" class="num btnum">
+          </li>
+          <li>
+            <input type="button" value="2" class="num btnum">
+          </li>
+          <li>
+            <input type="button" value="3" class="num btnum">
+          </li>
+          <li>
+            <input type="button" value="4" class="num btnum">
+          </li>
+          <li>
+            <input type="button" value="5" class="num btnum">
+          </li>
+          <li>
+            <input type="button" value="6" class="num btnum">
+          </li>
+          <li>
+            <input type="button" value="7" class="num btnum">
+          </li>
+          <li>
+            <input type="button" value="8" class="num btnum">
+          </li>
+          <li>
+            <input type="button" value="9" class="num btnum">
+          </li>
+          <li>
+            <input type="button" value="0" class="num btnum">
+          </li>
+          <li class="type1">
+            <input type="button" value="删除" class="num" id="delet">
+          </li>
+          <li class="last">
+            <input type="button" value="确认" class="num" id="msr">
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- 提示框 -->
+<div class="alertModel">
+  <div class="center status1" style="display: none">
+    <div class="icon">
+      <img src="images/icon1.png" alt="">
+    </div>
+    <div class="title">
+      <p>正在处理中</p>
+      <p>请不要走开</p>
+    </div>
+  </div>
+  <div class="center status2" style="display: none">
+    <div class="icon">
+      <img src="images/icon1.png" alt="">
+    </div>
+    <div class="title">
+      <p>订单不存在</p>
+      <p><b>15</b>返回主页面，重新输入</p>
+    </div>
+  </div>
+  <div class="center status3" style="display: none">
+    <div class="icon">
+      <img src="images/icon1.png" alt="">
+    </div>
+    <div class="title">
+      <p>订单获取失败</p>
+      <p><b>15</b>返回主页面，重新输入</p>
+    </div>
+  </div>
+  <div class="center on" style="display: none">
+    <div class="icon">
+      <img src="images/icon1.png" alt="">
+    </div>
+    <div class="title">
+      <p>出货中</p>
+      <p>请不要走开</p>
+    </div>
+  </div>
+  <div class="center succeed" style="display: none">
+    <div class="icon">
+      <img src="images/icon3.png" alt="">
+    </div>
+    <div class="title">
+      <p>出货完成，请及时拿走您的商品</p>
+      <p><b>15</b>秒后取货门即将关闭</p>
+    </div>
+  </div>
+  <div class="center fail" style="display: none">
+    <div class="icon">
+      <img src="images/icon2.png" alt="">
+    </div>
+    <div class="title">
+      <p>出货失败！</p>
+      <p>请联系门店或者客服处理退款</p>
+    </div>
+  </div>
+  <div class="center fail2" style="display: none">
+    <div class="icon">
+      <img src="images/icon2.png" alt="">
+    </div>
+    <div class="title">
+      <p>部分出货失败！</p>
+      <p>请联系门店或者客服处理退款</p>
+    </div>
+  </div>
+</div>
+
+<script src="js/jquery.min.js"></script>
+<script src="js/swiper.min.js"></script>
+<script>
+var activeIndex = 0
+var isPlay = false
+var swiper1 =null
+function close(){
+  $('.bottomMenu').stop().toggle();
+  $('#val').val('');
+ } 
+
+
+// 定时器
+var closeTime;
+function closeTimeFun(){
+  closeTime = setTimeout(function(){
+  close();
+  },15000);
+}
+
+var clearTimeHome;
+function timeOutGoHome() {
+  clearTimeout(closeTime)
+  clearTimeout(clearTimeHome)
+  clearTimeHome = setTimeout(function(){
+    $('.alertModel').hide();
+    $('.telval').show();
+    $('.btn').show();
+    if(swiper1){
+      swiper1.startAutoplay();
+      swiper1.slideNext();
+    }
+  },15000);
+}
+
+
+  // 页面跳转逻辑
+  function togglePage(status) {
+    if(swiper1){
+      swiper1.stopAutoplay();
+      var video = document.getElementById(`videokey${activeIndex}`);
+      if(video){
+          video.pause()
+          isPlay= false
+      }
+    }
+  if (status == 1){
+    // 正在处理，显示正在处理界面
+    $('.bottomMenu,.index .content1 .btn').hide();
+    $('.alertModel .status1').show().siblings().hide();
+
+    $('.telval').hide();
+    $('.alertModel').show() ;
+  }
+  if (status == 2){
+    // 订单不存在，显示不存在页面
+    $('.bottomMenu,.index .content1 .btn').hide();
+    $('.alertModel .status2').show().siblings().hide();
+
+    $('.telval').hide();
+    $('.alertModel').show() ;
+    timeOutGoHome();
+  }
+  if (status == 3){
+    // 获取订单信息失败，显示订单信息失败页
+    $('.bottomMenu,.index .content1 .btn').hide();
+    $('.alertModel .status3').show().siblings().hide();
+
+    $('.telval').hide();
+    $('.alertModel').show() ;
+    timeOutGoHome();
+  }
+  if (status == 4){
+    // 出货中，调用出货中的页面
+    $('.bottomMenu,.index .content1 .btn').hide();
+    $('.alertModel .on').show().siblings().hide();
+
+    $('.telval').hide();
+    $('.alertModel').show() ;
+  }
+  if (status == 5){
+      // 出货失败页面
+      $('.bottomMenu,.index .content1 .btn').hide();
+      $('.alertModel .fail').show().siblings().hide();
+      
+      $('.telval').hide();
+      $('.alertModel').show();
+      timeOutGoHome();
+  }
+  if (status == 6){
+      // 部分出货失败页面
+      $('.bottomMenu,.index .content1 .btn').hide();
+      $('.alertModel .fail2').show().siblings().hide();
+      
+      $('.telval').hide();
+      $('.alertModel').show();
+      timeOutGoHome();
+  }
+  if (status == 7){
+      // 成功页面
+      $('.bottomMenu,.index .content1 .btn').hide();
+      $('.alertModel .succeed').show().siblings().hide();
+      
+      $('.telval').hide();
+      $('.alertModel').show();
+      timeOutGoHome();
+  }
+}
+
+// 供java调用
+function sendContent(res) {
+  // {qrCode:'',mobile:'123456789'}
+
+  try {
+    // const res = {...obj}
+    // var res = $.parseJSON(obj)
+    if(res.qrCode.length>0) {
+      $('.ewm .imgbox img').attr('src',res.qrCode);
+      $('.ewm .imgbox').show();
+    }
+    if(res.mobile.length>0) {
+      $('.ewm .telval strong').html(res.mobile);
+    }
+  }catch(e) {
+    // alert('格式有误');
+    console.log(e);
+  }
+}
+// 供java调用
+function setSwiper(result) {
+  try {
+    if(result.length>0) {
+      var dataList =result.map(function(item){
+        let obj = item
+        obj.url  = '/storage/emulated/0/NewWebFile/BannerImg/'+obj.url 
+        return obj
+      })
+      dataList.unshift({
+        // 类型 1图片 2视频
+        type:"1",
+        // 资源地址
+        url:"images/wapimg1.png",
+      })
+      var html = '<div class="swiper-container"><div class="swiper-wrapper">'
+        dataList.forEach(function(item,i) {
+          if(item.type ==1){
+            html +=
+            `<div class="swiper-slide">
+              <div class="imgbox" id="imgkey${i}">
+                <div class="img pc" style="background: url(${item.url}) no-repeat center center;"></div>
+                <div class="img wap" style="background: url(${item.url}) no-repeat center center;"></div>
+              </div>
+            </div>`
+          }else{
+            html +=
+            `<div class="swiper-slide">
+              <div class="videobox">
+                <div class="play_btn" id="play_${i}" ></div>
+                <video class="video" controls width="100%" src="${item.url}" id="videokey${i}" muted>
+                  <source src="${item.url}" type="video/mp4" width="100%">
+                </video>
+              </div>
+            </div>`
+          }
+        });
+      html +='</div></div>'
+      $('#swiperBox').html(html) 
+        swiper1 = new Swiper('.floating .swiper-container',{
+        pagination: '.floating .swiper-pagination',
+        paginationClickable: '.floating .swiper-pagination',
+        nextButton: '.floating .swiper-button-next',
+        prevButton: '.floating .swiper-button-prev',
+        autoplay:5000,
+        autoplayDisableOnInteraction: false,
+        speed:700,
+        slidesPerView: 1,
+        spaceBetween: 0,
+          loop:true,//无缝衔接滚动
+          // effect:'cube',//滑动效果
+          observer:true,//修改swiper自己或子元素时，自动初始化swiper
+          observeParents:true,//修改swiper的父元素时，自动初始化swiper
+          autoplayDisableOnInteraction:false,//用户操作swiper之后不禁止autoplay
+          lazyLoading:true,//图片延迟加载
+          lazyLoadingInPrevNext:true,//前一个和后一个延迟加载
+          onClick:function(v){
+            var video = document.getElementById(`videokey${activeIndex}`);
+            if(video){
+              if(!isPlay){
+                video.play()
+                swiper1.stopAutoplay();
+              }else{
+                video.pause()
+              }
+            }
+          }
+      })
+      swiper1.on('SlideChangeStart',function (e) {
+        activeIndex =swiper1.realIndex
+        var video = document.getElementById(`videokey${activeIndex}`);
+        if(video){
+          video.play()
+          swiper1.stopAutoplay();
+        }else{
+          swiper1.startAutoplay();
+        }
+      })
+      // 监听视频播放完成
+      $('.videobox video').on('ended', function () {
+        isPlay= false
+        console.log('播放完成')
+        swiper1.startAutoplay();
+        swiper1.slideNext();
+      })
+      // 暂停播放
+      $('.videobox video').on('pause', function () {
+        console.log('暂停播放')
+        isPlay= false
+        setTimeout(function(){
+          swiper1.startAutoplay();
+          swiper1.slideNext();
+        },1000)
+      })
+
+      // 提示该视频正在播放中
+      $('.videobox video').on('play', function () {
+        console.log('提示该视频正在播放中')
+        isPlay= true
+        swiper1.stopAutoplay();
+      })
+      // 视频出错了
+      $('.videobox video').on('error', function () {
+        console.log('视频出错了')
+        isPlay= false
+        swiper1.startAutoplay();
+        swiper1.slideNext();
+      })
+    }
+  }catch(e) {
+    // alert('格式有误');
+    console.log(e);
+  }
+}
+
+// var dataArr = [
+//   {
+//     // 类型 1图片 2视频
+//     "type":"1",
+//     // 资源地址
+//     "url":"images/wapimg1.png",
+//   },
+//   {
+//     "type":"2",
+//     "url":"images/lyl.mp4",
+//   },
+//   {
+//     "type":"1",
+//     "url":"images/wapimg1.png",
+//   },
+//   {
+//     "type":"1",
+//     "url":"images/wapimg1.png",
+//   },
+// ]
+// setSwiper(dataArr)
+
+
+
+// 调用 java 程序
+// function outGoodsCode(pickupCode){
+//   // pickupCode = 
+//   const res = window.JavaObject.outGoodsCode(pickupCode)
+//   return res
+// }
+
+  // 打开输出框
+  $('.index .content1 .btn').on('click',function(){
+    close();
+    closeTimeFun();
+  });
+  // 关闭输出框
+  $('.bottomMenu .content .close').click(function(){
+    close();
+    clearTimeout(closeTime);
+  });
+  // 输入数字
+  $('.btnum').mousedown(function(){
+    clearTimeout(closeTime);
+    if ($('#val').val().length<6) {
+    $('#val').val($('#val').val()+$(this).val());
+    }
+  });
+
+  // 删除数字
+  $('#delet').mousedown(function(){
+    clearTimeout(closeTime);
+    var str=$('#val').val();
+    str=str.slice(0,str.length-1);
+    $('#val').val(str);
+  });
+  // 提交
+  $('#msr').mousedown(function(){
+    clearTimeout(closeTime)
+    if ($('#val').val().length==6) {
+      var pickupCode = $('#val').val();
+      // alert(pickupCode)
+      // var res = outGoodsCode(pickupCode);
+      try {
+        window.JavaObject.outGoodsCode(pickupCode)
+      } catch (error) {
+        
+      }
+      
+      // $('#kitty').html(res);
+      // if(!res) {
+      //   res = 2;
+      // }
+      // alert(res)
+      // togglePage(2);
+    }
+  });
+
+  // 鼠标移出开启定时器
+  $('.btnum,#delet,#msr').mouseup(function(){
+    closeTimeFun();
+  });
+
+</script>
+
+</body>
+</html>
