@@ -109,6 +109,7 @@ public class Repository {
     private MutableLiveData<Integer> mDeviceState;
     private MutableLiveData<String> mTempAndHumValue;
     private MutableLiveData<String> mQrPath;
+    private Timer mTimer;
 
     @Inject
 
@@ -874,13 +875,14 @@ public class Repository {
         XLog.tag(TAG).i("出货数据：" + shoppingGoodsList);
         ShoppingGoods shoppingGoods = shoppingGoodsList.get(outNo);
         isOutGoods = true;
-        Timer lTimer = new Timer();
+
         deviceManger.addDeviceDataListener(new OnDataListener() {
             @Override
             public void onDataSend(byte[] bytes) {
                 super.onDataSend(bytes);
                 if (isOutGoods) {
-                    lTimer.schedule(new TimerTask() {
+                    mTimer = new Timer();
+                    mTimer.schedule(new TimerTask() {
                         @Override
                         public void run() {
                             XLog.tag(TAG).i("串口通讯超时");
@@ -897,7 +899,7 @@ public class Repository {
                 String resultMessage = new String(bytes, StandardCharsets.US_ASCII);
                 XLog.tag(TAG).i("出货返回的数据：" + resultMessage);
                 if (isOutGoods) {
-                    lTimer.cancel();
+                    mTimer.cancel();
                     if (resultMessage.startsWith("res:")) {
                         String result = resultMessage.replace("res:", "").replace("\r\n", "");
                         XLog.tag(TAG).i("返回数据是：" + result + "结果");
