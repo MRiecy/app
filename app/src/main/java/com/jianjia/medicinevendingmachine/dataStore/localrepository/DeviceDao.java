@@ -40,4 +40,13 @@ public interface DeviceDao {
     @Query("SELECT*FROM advertcontent")
     AdvertContent getAdvertContent();
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void addResultShopping(ResultShopping... resultShopping);
+
+    @Query("SELECT*FROM resultshopping")
+    ResultShopping getResultShopping();
+
+    @Query("DElETE FROM resultshopping")
+    void clearResultShopping();
+
 }

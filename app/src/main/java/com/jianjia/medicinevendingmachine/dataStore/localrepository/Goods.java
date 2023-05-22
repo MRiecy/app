@@ -5,7 +5,7 @@ import androidx.room.Entity;
 import androidx.room.Ignore;
 
 @Entity(tableName = "goods", primaryKeys = {"iR", "iC"})
-public class Goods {
+public class Goods implements Comparable<Goods>{
     private int iR;
     private int iC;
     private double iRC;
@@ -64,6 +64,14 @@ public class Goods {
         this.AT = AT;
     }
 
+    @Override
+    public int compareTo(@NonNull Goods o) {
+        if (this.iR == o.getIR()) {
+            return (int) (iCC - o.getICC());
+        } else {
+            return this.iR - o.getIR();
+        }
+    }
     @NonNull
     @Override
     public String toString() {

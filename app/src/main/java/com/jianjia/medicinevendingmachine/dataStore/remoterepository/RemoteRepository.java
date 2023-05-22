@@ -105,7 +105,7 @@ public class RemoteRepository {
     }
 
     public void sendGoodsShoppingResult(@NonNull String orderNum, @NonNull String outStatus,
-                                        @NonNull String result, long time) {
+                                        @NonNull String result, String time) {
         XLog.tag(TAG).i("发送出货结果:" + orderNum + " " + outStatus + " " + result);
         if (socketNet != null) {
             socketNet.sendData(CMD_CODE_OUT_GOODS_RESULT, new String[]{String.format("%-30s", orderNum), outStatus,

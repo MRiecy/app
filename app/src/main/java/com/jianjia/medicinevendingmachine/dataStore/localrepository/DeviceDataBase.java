@@ -6,7 +6,7 @@ import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
 
-@Database(entities = {Goods.class,AdvertMould.class,AdvertContent.class}, version = 1, exportSchema = false)
+@Database(entities = {Goods.class,AdvertMould.class,AdvertContent.class, ResultShopping.class}, version = 1, exportSchema = false)
 public abstract class DeviceDataBase extends RoomDatabase {
     private static final String DB_NAME = "device.db";
     private static DeviceDataBase sMyDataBase;

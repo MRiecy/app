@@ -78,6 +78,23 @@ public class LocalRepository {
         }
     }
 
+    public void addResultShopping(ResultShopping... resultShopping) {
+        new addResultShoppingTask().execute(resultShopping);
+    }
+
+    public ResultShopping getResultShopping() {
+        try {
+            return new getResultShoppingTask().execute().get();
+        } catch (ExecutionException | InterruptedException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public void deleteResultShopping() {
+        new deleteResultShoppingTask().execute();
+    }
+
     public LiveData<AdvertMould> getAdvertMouldByLiveData() {
         try {
             return new getAdvertMouldByLiveDataTask().execute().get();
@@ -167,6 +184,29 @@ public class LocalRepository {
         @Override
         protected LiveData<AdvertContent> doInBackground(Void... voids) {
             return mDeviceDao.getAdvertContentByLiveData();
+        }
+    }
+
+    private class addResultShoppingTask extends AsyncTask<ResultShopping, Void, Void> {
+        @Override
+        protected Void doInBackground(ResultShopping... resultShopping) {
+            mDeviceDao.addResultShopping(resultShopping);
+            return null;
+        }
+    }
+
+    private class getResultShoppingTask extends AsyncTask<Void, Void, ResultShopping> {
+        @Override
+        protected ResultShopping doInBackground(Void... voids) {
+            return mDeviceDao.getResultShopping();
+        }
+    }
+
+    private class deleteResultShoppingTask extends AsyncTask<Void, Void, Void> {
+        @Override
+        protected Void doInBackground(Void... args0) {
+            mDeviceDao.clearResultShopping();
+            return null;
         }
     }
 
