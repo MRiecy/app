@@ -1040,8 +1040,12 @@ public class Repository {
                             if (resultMessage.startsWith("temp:")) {
                                 String[] tempAndHum = resultMessage.replace("temp:", "").replace("\r\n", "").split(",");
                                 XLog.tag(TAG).i("温度：" + tempAndHum[0] + " " + "湿度：" + tempAndHum[1]);
+                                int lI = Integer.parseInt(tempAndHum[0]);
+                                if (lI > 20) {
+                                    lI = 20;
+                                }
                                 JSONObject jsonObject = new JSONObject();
-                                jsonObject.put("temp", tempAndHum[0]);
+                                jsonObject.put("temp", lI + "");
                                 jsonObject.put("hum", tempAndHum[1]);
                                 String tempAndHumJson = jsonObject.toJSONString();
                                 mTempAndHumValue.postValue(tempAndHumJson);
@@ -1049,6 +1053,7 @@ public class Repository {
                             }
                         }
                     });
+                    XLog.tag(TAG).i("获取温湿度");
                     deviceManger.getTemperatureAndHumidity();
                 }
             }
