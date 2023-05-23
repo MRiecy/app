@@ -11,8 +11,8 @@ android {
         applicationId "com.jianjia.medicinevendingmachine"
         minSdk 21
         targetSdk 33
-        versionCode 31
-        versionName "1.37"
+        versionCode 32
+        versionName "1.38"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         javaCompileOptions {

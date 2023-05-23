@@ -425,14 +425,14 @@ public class Repository {
     }
 
     private void upDataConfig() {
+        getAppInfo();
         upDeviceMessage();
         getDeviceExtendedInformation();
-        getAppInfo();
         remoteRepository.timingUpLog(deviceNO);
-        getDeviceConfig();
         getQR();
         upNoUpdateShoppingResult();
         timGetTemperatureAndHumidity();
+        getDeviceConfig();
     }
 
     private void upNoUpdateShoppingResult() {
@@ -1006,13 +1006,15 @@ public class Repository {
                         int resultCode = Integer.parseInt(result);
                         if (resultCode == 0) {
                             XLog.tag(TAG).i("取包装袋成功");
+                            packageNo = 1;
+                            isOutPackage = false;
                             deviceState = DeviceStateConstant.DEVICE_NORMAL;
                         } else {
-                            XLog.tag(TAG).i("取包装袋失败");
                             if (packageNo != packageCount) {
                                 packageNo += 1;
                                 deviceManger.shoppingGoods(61, 123, 5);
                             } else {
+                                XLog.tag(TAG).i("取包装袋失败");
                                 packageNo = 1;
                                 isOutPackage = false;
                                 deviceState = DeviceStateConstant.DEVICE_NORMAL;
