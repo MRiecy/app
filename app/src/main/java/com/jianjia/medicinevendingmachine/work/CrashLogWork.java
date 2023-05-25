@@ -55,14 +55,7 @@ public class CrashLogWork extends Worker {
                             JSONObject lJSONObject = JSON.parseObject(result);
                             if (lJSONObject.getString("code").equals("200")) {
                                 XLog.tag(TAG).i("上传异常日志-文件成功");
-                                if (lFile.isDirectory()) {
-                                    File[] files = lFile.listFiles();
-                                    if (files != null) {
-                                        for (File file : files) {
-                                            FileUtil.deleteFileOrDir(file);
-                                        }
-                                    }
-                                }
+                                FileUtil.deleteFileOrDir(lFile);
                             } else {
                                 XLog.tag(TAG).i("上传异常日志-文件失败 ：" + SubAndBase64Decode(lJSONObject.getString("msg")));
                             }

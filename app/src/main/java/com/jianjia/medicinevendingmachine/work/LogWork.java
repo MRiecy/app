@@ -67,7 +67,7 @@ public class LogWork extends Worker {
                             if (lJSONObject.getString("code").equals("200")) {
                                 XLog.tag(TAG).i("上传日志-文件成功");
                                 if (isDeleteLogFile) {
-                                    FileUtil.deleteFileOrDir(new File(logFilePath));
+                                    FileUtil.deleteFileOrDir(new File(FilePathConstant.LOG_FILE_PATH));
                                     isDeleteLogFile = false;
                                 }
                             } else {
