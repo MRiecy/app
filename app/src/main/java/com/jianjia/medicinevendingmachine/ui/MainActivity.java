@@ -55,7 +55,6 @@ public class MainActivity extends AppCompatActivity {
         mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
         initView();
         requestPermission();
-        addDataObserver();
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -80,6 +79,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void init() {
         mainViewModel.init(this);
+        XLog.tag(TAG).i("观察数据");
+        addDataObserver();
     }
 
     private void requestPermission() {
@@ -137,7 +138,7 @@ public class MainActivity extends AppCompatActivity {
                             lJSONObject.put("url", banner);
                             advertJson.add(lJSONObject);
                         }
-                        lS = advertJson.toJSONString();
+                        lS = JSON.toJSONString(advertJson);
                     }
                     viewBind.webAdvert.evaluateJavascript("javascript:setSwiper(" + lS + ")", value ->
                             Log.i(TAG, "android调用了js的setSwiper方法返回：" + value));

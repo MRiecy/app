@@ -497,6 +497,7 @@ public class Repository {
                         List<Goods> goods = lDeviceInfo.getmList();
                         if (!goods.isEmpty()) {
                             List<Goods> lAllGoods = localRepository.getAllGoods();
+                            Log.i(TAG,"本地数据是："+lAllGoods);
                             if (lAllGoods.size() > goods.size()) {
                                 localRepository.deleteGoods();
                                 XLog.tag(TAG).i("删除本地数据");
@@ -648,7 +649,7 @@ public class Repository {
 
             @Override
             public void onError(@NonNull Throwable ex, boolean isOnCallback) {
-                XLog.tag(TAG).i("下载广告模板失败:" + ex.getMessage());
+                XLog.tag(TAG).i("onError下载广告模板失败:" + ex.getMessage());
             }
 
             @Override
@@ -671,8 +672,8 @@ public class Repository {
             XLog.tag(TAG).i("远程广告包信息为空");
             return;
         } else {
-            for (Object object : lList) {
-                List<String> lFileList = ((JSONObject) object).getJSONArray("filePath").toJavaList(String.class);
+            for (int i = 0; i < lList.size(); i++) {
+                List<String> lFileList = JSONArray.parseArray(lList.getJSONObject(i).getString("filePath"), String.class);
                 bannerImageList.addAll(lFileList);
             }
         }
@@ -682,14 +683,15 @@ public class Repository {
         if (lAdvertContent != null) {
             String lContent = lAdvertContent.getContent();
             if (lContent != null && !lContent.equals("")) {
-                lBannerImageList = JSONArray.parseArray(lContent).toJavaList(String.class);
+                lBannerImageList = JSONArray.parseArray(JSON.toJSONString(lContent), String.class);
             }
+        }else {
+            XLog.tag(TAG).i("本地广告包信息为空");
         }
         ArrayList<String> downLoadUrls = new ArrayList<>();
         ArrayList<String> saveBannerImageList = new ArrayList<>();
         for (String lS : sBannerImageList) {
             String lSubstring = lS.substring(lS.lastIndexOf("/") + 1);
-            XLog.tag(TAG).i("远程广告资源名称：" + lSubstring);
             saveBannerImageList.add(lSubstring);
             String url = NetworkConfiguration.ADVERT_FILE_URL + lS;
             if (lBannerImageList != null && !lBannerImageList.isEmpty()) {

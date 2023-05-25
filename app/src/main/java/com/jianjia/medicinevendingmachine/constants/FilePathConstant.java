@@ -6,6 +6,7 @@ public class FilePathConstant {
     private FilePathConstant() {
     }
 
+    //    public static final String SDCARD_PATH = String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS));
     public static final String SDCARD_PATH = Environment.getExternalStorageDirectory().getPath();
     public static final String LOG_FILE_PATH = SDCARD_PATH + "/log/";
     public static final String CRASH_FILE_PATH = SDCARD_PATH + "/crash/";
