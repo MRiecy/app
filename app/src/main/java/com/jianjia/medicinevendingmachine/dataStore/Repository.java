@@ -265,6 +265,7 @@ public class Repository {
                         } else {
                             XLog.tag(TAG).i("订单信息异常");
                             mDeviceState.postValue(DeviceStateConstant.DEVICE_ORDER_ERROR);
+                            deviceState = DeviceStateConstant.DEVICE_NORMAL;
                         }
                     } else {
                         XLog.tag(TAG).i("出货接收信息:" + deviceGoodsStr);
