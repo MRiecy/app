@@ -30,7 +30,6 @@ import dagger.assisted.AssistedInject;
 public class LogWork extends Worker {
     private String TAG = "LogWork";
     private HttpUtils mHttpUtils;
-    private boolean isDeleteLogFile = false;
 
     @AssistedInject
     public LogWork(@Assisted @NonNull Context context, @Assisted @NonNull WorkerParameters workerParams, HttpUtils httpUtils) {
@@ -44,15 +43,16 @@ public class LogWork extends Worker {
         Calendar calendar = Calendar.getInstance();
         int year = calendar.get(Calendar.YEAR);
         int month = calendar.get(Calendar.MONTH) + 1;
+        int nowDay = calendar.get(Calendar.DAY_OF_MONTH);
         calendar.add(Calendar.DAY_OF_MONTH, -1);
         int day = calendar.get(Calendar.DAY_OF_MONTH);
         String logFileName = getInputData().getString("logFileName");
         String deviceNo = getInputData().getString("deviceNO");
         if (logFileName == null || logFileName.equals("")) {
-            isDeleteLogFile = true;
             logFileName = String.format("%2d-%02d-%02d", year, month, day);
             XLog.tag(TAG).i("定时日志名称:" + logFileName);
         }
+        String nowFileName = String.format("%2d-%02d-%02d", year, month, nowDay) + ".txt";
         String logFilePath = FilePathConstant.LOG_FILE_PATH + logFileName + ".txt";
         XLog.tag(TAG).i("日志路径：" + logFilePath);
         String zipLogFilePath = FilePathConstant.SDCARD_PATH + File.separator + logFileName + ".zip";
@@ -66,9 +66,16 @@ public class LogWork extends Worker {
                             JSONObject lJSONObject = JSON.parseObject(result);
                             if (lJSONObject.getString("code").equals("200")) {
                                 XLog.tag(TAG).i("上传日志-文件成功");
-                                if (isDeleteLogFile) {
-                                    FileUtil.deleteFileOrDir(new File(FilePathConstant.LOG_FILE_PATH));
-                                    isDeleteLogFile = false;
+                                File lFile = new File(FilePathConstant.LOG_FILE_PATH);
+                                if (lFile.exists()) {
+                                    File[] files = lFile.listFiles();
+                                    if (files != null) {
+                                        for (File file1 : files) {
+                                            if (!file1.getName().equals(nowFileName)) {
+                                                FileUtil.deleteFileOrDir(file1);
+                                            }
+                                        }
+                                    }
                                 }
                             } else {
                                 XLog.tag(TAG).i("上传日志-文件失败 ：" + SubAndBase64Decode(lJSONObject.getString("msg")));

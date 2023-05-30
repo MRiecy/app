@@ -4,8 +4,6 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 import android.view.ViewGroup;
 import android.webkit.JavascriptInterface;
@@ -29,6 +27,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.elvishew.xlog.XLog;
 import com.jianjia.medicinevendingmachine.constants.FilePathConstant;
+import com.jianjia.medicinevendingmachine.dataStore.localrepository.AdvertContent;
 import com.jianjia.medicinevendingmachine.dataStore.localrepository.AdvertMould;
 import com.jianjia.medicinevendingmachine.databinding.ActivityMainBinding;
 import com.jianjia.medicinevendingmachine.utils.AppUtils;
@@ -79,7 +78,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void init() {
         mainViewModel.init(this);
-        XLog.tag(TAG).i("观察数据");
         addDataObserver();
     }
 
@@ -118,52 +116,22 @@ public class MainActivity extends AppCompatActivity {
                     value -> XLog.tag(TAG).i("android调用了js的togglePage方法返回：" + value));
         });
 
-        mainViewModel.getAdvertContent().observe(this, advertContent -> {
-            if (advertContent != null) {
-                String lContent = advertContent.getContent();
-                new Handler().postDelayed(() -> {
-                    Log.i(TAG, "android调用了js的setSwiper方法：" + lContent);
-                    String lS = "";
-                    if (lContent != null && !lContent.equals("")) {
-                        JSONArray advertJson = new JSONArray();
-                        JSONArray lObjects = JSONArray.parseArray(lContent);
-                        for (Object lObject : lObjects) {
-                            String banner = (String) lObject;
-                            JSONObject lJSONObject = new JSONObject();
-                            if (banner.toUpperCase(Locale.ROOT).endsWith("MP4")) {
-                                lJSONObject.put("type", 2);
-                            } else {
-                                lJSONObject.put("type", 1);
-                            }
-                            lJSONObject.put("url", banner);
-                            advertJson.add(lJSONObject);
-                        }
-                        lS = JSON.toJSONString(advertJson);
-                    }
-                    viewBind.webAdvert.evaluateJavascript("javascript:setSwiper(" + lS + ")", value ->
-                            Log.i(TAG, "android调用了js的setSwiper方法返回：" + value));
-                    new Thread(() -> deleteOldFile(lContent)).start();
-                }, 10000);
-            }
-        });
-
         mainViewModel.getAdvertMould().observe(this, advertMould -> {
+            Log.i(TAG, "更新模板");
             loadWeb();
-            String lValue = mainViewModel.getQrPath().getValue();
-            if (lValue != null && !lValue.equals("")) {
-                new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        setQR(lValue);
-                    }
-                }, 1000);
-            }
         });
 
-        mainViewModel.getQrPath().observe(this, this::setQR);
+        mainViewModel.getQrPath().observe(this, new Observer<String>() {
+            @Override
+            public void onChanged(String s) {
+                setQR();
+            }
+        });
     }
 
-    private void setQR(String path) {
+    private void setQR() {
+        String path = mainViewModel.getQrPath().getValue();
+        Log.i(TAG, "设置二维码:" + path);
         if (path != null && !path.equals("")) {
             JSONObject lJSONObject = new JSONObject();
             lJSONObject.put("qrCode", path);
@@ -175,6 +143,36 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void setAdvertContent() {
+        AdvertContent lAdvertContent = mainViewModel.getAdvertContent();
+        if (lAdvertContent == null) {
+            XLog.tag(TAG).i("本地广告内容为空");
+            return;
+        }
+        String lContent = lAdvertContent.getContent();
+        Log.i(TAG, "加载广告包：" + lContent);
+        String lS = "";
+        if (lContent != null && !lContent.equals("")) {
+            JSONArray advertJson = new JSONArray();
+            JSONArray lObjects = JSONArray.parseArray(lContent);
+            for (Object lObject : lObjects) {
+                String banner = (String) lObject;
+                JSONObject lJSONObject = new JSONObject();
+                if (banner.toUpperCase(Locale.ROOT).endsWith("MP4")) {
+                    lJSONObject.put("type", 2);
+                } else {
+                    lJSONObject.put("type", 1);
+                }
+                lJSONObject.put("url", banner);
+                advertJson.add(lJSONObject);
+            }
+            lS = JSON.toJSONString(advertJson);
+        }
+        viewBind.webAdvert.evaluateJavascript("javascript:setSwiper(" + lS + ")", value ->
+                Log.i(TAG, "android调用了js的setSwiper方法返回：" + value));
+        new Thread(() -> deleteOldFile(lContent)).start();
+    }
+
     private void deleteOldFile(String bannerList) {
         if (bannerList != null) {
             Log.i(TAG, "轮播图文件名：" + bannerList);
@@ -184,9 +182,7 @@ public class MainActivity extends AppCompatActivity {
                 File[] files = file.listFiles();
                 if (files != null) {
                     for (File file1 : files) {
-                        Log.i(TAG, "本地文件1：" + file1.getName());
                         if (!bannerList.contains(file1.getName())) {
-                            Log.i(TAG, "本地文件2：" + file1.getName());
                             FileUtil.deleteFileOrDir(file1);
                         }
                     }
@@ -199,11 +195,12 @@ public class MainActivity extends AppCompatActivity {
         Log.i(TAG, "加载网页");
         AdvertMould lAdvertMould = mainViewModel.getAdvertMouldNoLive();
         if (lAdvertMould == null || lAdvertMould.getMouldId() == 0 || lAdvertMould.getMouldVersion() == 0.0) {
-            Log.i(TAG, "广告模板为空");
+            Log.i(TAG, "加载默认网页");
             viewBind.webAdvert.loadUrl(FilePathConstant.BIG_SCREEN_ADVERTISING_DF_PATH);
         } else {
-            // mWebView.loadUrl("file://" + FilePathConstant.FILE_PATH + "index.html");
+            Log.i(TAG, "加载sdk网页");
             viewBind.webAdvert.loadUrl(FilePathConstant.BIG_SCREEN_ADVERTISING_DF_PATH);
+            //   viewBind.webAdvert.loadUrl("file://" + FilePathConstant.FILE_PATH + "index.html");
         }
     }
 
@@ -250,6 +247,8 @@ public class MainActivity extends AppCompatActivity {
             if (!view.getSettings().getLoadsImagesAutomatically()) {
                 view.getSettings().setLoadsImagesAutomatically(true);
             }
+            setQR();
+            setAdvertContent();
         }
 
         @Nullable

@@ -8,7 +8,6 @@ import com.elvishew.xlog.XLog;
 import com.jianjia.medicinevendingmachine.utils.BytesUtils;
 import com.xuhao.didi.core.iocore.interfaces.IPulseSendable;
 import com.xuhao.didi.core.protocol.IReaderProtocol;
-import com.xuhao.didi.core.utils.SLog;
 import com.xuhao.didi.socket.client.sdk.OkSocket;
 import com.xuhao.didi.socket.client.sdk.client.ConnectionInfo;
 import com.xuhao.didi.socket.client.sdk.client.OkSocketOptions;
@@ -33,13 +32,12 @@ public class SocketNet {
     public SocketNet setConnectConfiguration(@NonNull String hostAddress, int port) {
         XLog.tag(TAG).i("中转平台IP地址为：" + hostAddress + " " + port);
         ConnectionInfo info = new ConnectionInfo(hostAddress, port);
-        SLog.setIsDebug(true);
-        OkSocketOptions.setIsDebug(true);
+     /*   SLog.setIsDebug(true);
+        OkSocketOptions.setIsDebug(true);*/
         OkSocketOptions lOkSocketOptions = new OkSocketOptions.Builder()
                 .setPulseFrequency(10 * 1000)//心跳发送间隔时间
                 .setPulseFeedLoseTimes(5)//心跳最大丢失次数
                 .setConnectTimeoutSecond(10)
-                .setConnectionHolden(true)
                 .setIOThreadMode(OkSocketOptions.IOThreadMode.DUPLEX)
                 .setReaderProtocol(new IReaderProtocol() {
                     @Override

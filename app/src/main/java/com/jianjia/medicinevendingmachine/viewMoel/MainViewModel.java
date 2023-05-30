@@ -63,8 +63,8 @@ public class MainViewModel extends AndroidViewModel {
         return mLocalRepository.getAdvertMouldByLiveData();
     }
 
-    public LiveData<AdvertContent> getAdvertContent() {
-        return mLocalRepository.getAdvertContentByLiveData();
+    public AdvertContent getAdvertContent() {
+        return mLocalRepository.getAdvertContent();
     }
 
     public AdvertMould getAdvertMouldNoLive() {

@@ -59,6 +59,7 @@ import com.jianjia.medicinevendingmachine.manger.DeviceManger;
 import com.jianjia.medicinevendingmachine.utils.AppUtils;
 import com.jianjia.medicinevendingmachine.utils.BytesUtils;
 import com.jianjia.medicinevendingmachine.utils.NetUtils;
+import com.jianjia.medicinevendingmachine.utils.ThreadPoolUtils;
 import com.jianjia.medicinevendingmachine.utils.TimerManager;
 import com.jianjia.medicinevendingmachine.utils.ZipUtils;
 import com.tim.serialportlib.OnDataListener;
@@ -123,7 +124,7 @@ public class Repository {
         this.mDeviceState = deviceStates;
         this.mTempAndHumValue = tempAndHumValue;
         this.mQrPath = qrPath;
-        new Thread(() -> deviceManger.init()).start();
+        ThreadPoolUtils.getInstance().doThings(() -> deviceManger.init());
         remoteRepository.initSockNet(hostAddress, new SocketActionAdapter() {
             @Override
             public void onSocketIOThreadShutdown(String action, @NonNull Exception e) {
@@ -172,8 +173,7 @@ public class Repository {
             @SuppressLint("NewApi")
             @Override
             public void onSocketReadResponse(ConnectionInfo info, String action, @NonNull OriginalData data) {
-                XLog.tag(TAG).i("onSocketReadResponse：" + String.format("%02x", data.getHeadBytes()[8]) +
-                        "-- 数据：头：" + bytesToHexString(data.getHeadBytes()) + "包体：" + bytesToHexString(data.getBodyBytes()));
+                XLog.tag(TAG).i("onSocketReadResponse：" + String.format("%02x", data.getHeadBytes()[8]) + "-- 数据：头：" + bytesToHexString(data.getHeadBytes()) + "包体：" + bytesToHexString(data.getBodyBytes()));
                 ByteBuffer bb = ByteBuffer.allocate(data.getHeadBytes().length + data.getBodyBytes().length);
                 bb.order(ByteOrder.BIG_ENDIAN);
                 bb.put(data.getHeadBytes());
@@ -332,6 +332,7 @@ public class Repository {
                     String deviceOff = SubAndBase64Decode(bodyStr, 0, 6);
                     XLog.tag(TAG).i("设备关机:" + deviceOff);
                     deviceManger.shutdown();
+                    System.exit(0);
                 } else if (Arrays.equals(cCode, CMD_CODE_FAULT_CHECK)) {//发起异常检测
                     String checkSelfString = SubAndBase64Decode(bodyStr, 0, 6);
                     XLog.tag(TAG).i("发起异常检测:" + checkSelfString);
@@ -406,34 +407,44 @@ public class Repository {
     }
 
     private void ADScreenCapture() {
-        File file = new File(FilePathConstant.SCREEN_CAPTURE_PATH);
-        if (!file.exists()) {
-            XLog.tag(TAG).i("截图开始");
-            boolean isSuccess = deviceManger.takeScreenshot(FilePathConstant.SCREEN_CAPTURE_PATH);
-            if (isSuccess) {
-                XLog.tag(TAG).i("截图保存成功");
-                remoteRepository.upDataScreenCapture(FilePathConstant.SCREEN_CAPTURE_PATH, deviceNO);
-            } else {
-                XLog.tag(TAG).i("截图保存失败");
+        ThreadPoolUtils.getInstance().doThings(new Runnable() {
+            @Override
+            public void run() {
+                File file = new File(FilePathConstant.SCREEN_CAPTURE_PATH);
+                if (!file.exists()) {
+                    XLog.tag(TAG).i("截图开始");
+                    boolean isSuccess = deviceManger.takeScreenshot(FilePathConstant.SCREEN_CAPTURE_PATH);
+                    if (isSuccess) {
+                        XLog.tag(TAG).i("截图保存成功");
+                        remoteRepository.upDataScreenCapture(FilePathConstant.SCREEN_CAPTURE_PATH, deviceNO);
+                    } else {
+                        XLog.tag(TAG).i("截图保存失败");
+                    }
+                } else {
+                    XLog.tag(TAG).i("删除旧图");
+                    if (file.delete()) {
+                        XLog.tag(TAG).i("删除旧图后截图");
+                        ADScreenCapture();
+                    }
+                }
             }
-        } else {
-            XLog.tag(TAG).i("删除旧图");
-            if (file.delete()) {
-                XLog.tag(TAG).i("删除旧图后截图");
-                ADScreenCapture();
-            }
-        }
+        });
     }
 
     private void upDataConfig() {
-        getAppInfo();
-        upDeviceMessage();
-        getDeviceExtendedInformation();
-        remoteRepository.timingUpLog(deviceNO);
-        getQR();
-        upNoUpdateShoppingResult();
-        timGetTemperatureAndHumidity();
-        getDeviceConfig();
+        ThreadPoolUtils.getInstance().doThings(new Runnable() {
+            @Override
+            public void run() {
+                getAppInfo();
+                upDeviceMessage();
+                getDeviceExtendedInformation();
+                remoteRepository.timingUpLog(deviceNO);
+                getQR();
+                upNoUpdateShoppingResult();
+                timGetTemperatureAndHumidity();
+                getDeviceConfig();
+            }
+        });
     }
 
     private void upNoUpdateShoppingResult() {
@@ -497,7 +508,6 @@ public class Repository {
                         List<Goods> goods = lDeviceInfo.getmList();
                         if (!goods.isEmpty()) {
                             List<Goods> lAllGoods = localRepository.getAllGoods();
-                            Log.i(TAG,"本地数据是："+lAllGoods);
                             if (lAllGoods.size() > goods.size()) {
                                 localRepository.deleteGoods();
                                 XLog.tag(TAG).i("删除本地数据");
@@ -582,7 +592,7 @@ public class Repository {
                         downLoadAdvertProcedures(lData, sUrl, savePath, sProId, sProVersion);
                     } else {
                         XLog.tag(TAG).i("不需要更新广告模板");
-                        upAdvertPicture(lData, savePath);
+                        upAdvertPicture(lData, savePath, new AdvertMould(1, sProId, sProVersion));
 
                     }
                 } else {
@@ -612,60 +622,63 @@ public class Repository {
     }
 
     private void downLoadAdvertProcedures(@NonNull JSONObject jsonObject, @NonNull String url, String savePath, int id, double version) {
-        String fileName = url.substring(url.lastIndexOf("/") + 1);
-        String lFileSavePath = savePath + fileName;
-        XLog.tag(TAG).i("广告模板下载地址：" + url);
-        remoteRepository.downLoadFile(url, lFileSavePath, new Callback.CommonCallback<>() {
+
+        ThreadPoolUtils.getInstance().doThings(new Runnable() {
             @Override
-            public void onSuccess(@NonNull File result) {
-                XLog.tag(TAG).i("广告模板下载成功");
-                if (result.exists() && result.length() > 0) {
-                    String path = FilePathConstant.FILE_PATH;
-                    File file = new File(path);
-                    if (file.exists()) {
-                        File[] files = file.listFiles();
-                        if (files != null) {
-                            for (File file1 : files) {
-                                Log.i(TAG, "本地文件：" + file1.getName());
-                                if (!file1.getName().endsWith(".zip")) {
-                                    FileUtil.deleteFileOrDir(file1);
+            public void run() {
+                String fileName = url.substring(url.lastIndexOf("/") + 1);
+                String lFileSavePath = savePath + fileName;
+                XLog.tag(TAG).i("广告模板下载地址：" + url);
+                remoteRepository.downLoadFile(url, lFileSavePath, new Callback.CommonCallback<>() {
+                    @Override
+                    public void onSuccess(@NonNull File result) {
+                        XLog.tag(TAG).i("广告模板下载成功");
+                        if (result.exists() && result.length() > 0) {
+                            File file = new File(FilePathConstant.FILE_PATH);
+                            if (file.exists()) {
+                                File[] files = file.listFiles();
+                                if (files != null) {
+                                    for (File file1 : files) {
+                                        if (!file1.getName().endsWith(".zip") && !file1.getName().endsWith("BannerImg")) {
+                                            FileUtil.deleteFileOrDir(file1);
+                                        }
+                                    }
                                 }
                             }
+                            if (ZipUtils.unZipFile(result.getPath(), savePath)) {
+                                XLog.tag(TAG).i("广告模板解压成功");
+                                upAdvertPicture(jsonObject, savePath, new AdvertMould(1, id, version));
+                            } else {
+                                XLog.tag(TAG).i("解压广告模板失败");
+
+                            }
+                            FileUtil.deleteFileOrDir(result);
+                        } else {
+                            XLog.tag(TAG).i("广告模板下载失败");
                         }
                     }
-                    if (ZipUtils.unZipFile(result.getPath(), savePath)) {
-                        XLog.tag(TAG).i("广告模板解压成功");
-                        localRepository.updateAndInsertAdvertMould(new AdvertMould(1, id, version));
-                        upAdvertPicture(jsonObject, savePath);
-                    } else {
-                        XLog.tag(TAG).i("解压广告模板失败");
+
+                    @Override
+                    public void onError(@NonNull Throwable ex, boolean isOnCallback) {
+                        XLog.tag(TAG).i("onError下载广告模板失败:" + ex.getMessage());
+                    }
+
+                    @Override
+                    public void onCancelled(CancelledException cex) {
 
                     }
-                    FileUtil.deleteFileOrDir(result);
-                } else {
-                    XLog.tag(TAG).i("广告模板下载失败");
-                }
-            }
 
-            @Override
-            public void onError(@NonNull Throwable ex, boolean isOnCallback) {
-                XLog.tag(TAG).i("onError下载广告模板失败:" + ex.getMessage());
-            }
+                    @Override
+                    public void onFinished() {
 
-            @Override
-            public void onCancelled(CancelledException cex) {
-
-            }
-
-            @Override
-            public void onFinished() {
-
+                    }
+                });
             }
         });
     }
 
-    private void upAdvertPicture(@NonNull JSONObject jsonObject, String savePath) {
-        ArrayList<String> bannerImageList = new ArrayList<>();
+    private void upAdvertPicture(@NonNull JSONObject jsonObject, String savePath, AdvertMould advertMould) {
+        ArrayList<String> sBannerImageList = new ArrayList<>();
         String lPicFilePath = savePath + FilePathConstant.BANNER_IMG;
         JSONArray lList = jsonObject.getJSONArray("list");
         if (lList == null || lList.isEmpty()) {
@@ -674,85 +687,95 @@ public class Repository {
         } else {
             for (int i = 0; i < lList.size(); i++) {
                 List<String> lFileList = JSONArray.parseArray(lList.getJSONObject(i).getString("filePath"), String.class);
-                bannerImageList.addAll(lFileList);
+                sBannerImageList.addAll(lFileList);
             }
         }
-        ArrayList<String> sBannerImageList = new ArrayList<>(new HashSet<>(bannerImageList));
         AdvertContent lAdvertContent = localRepository.getAdvertContent();
         List<String> lBannerImageList = null;
         if (lAdvertContent != null) {
             String lContent = lAdvertContent.getContent();
             if (lContent != null && !lContent.equals("")) {
-                lBannerImageList = JSONArray.parseArray(JSON.toJSONString(lContent), String.class);
+                lBannerImageList = JSONArray.parseArray(lContent, String.class);
+                XLog.tag(TAG).i("本地广告包信息为:" + lBannerImageList);
+            } else {
+                XLog.tag(TAG).i("本地广告包内容为空");
             }
-        }else {
+        } else {
             XLog.tag(TAG).i("本地广告包信息为空");
         }
-        ArrayList<String> downLoadUrls = new ArrayList<>();
+        HashSet<String> downLoadUrls = new HashSet<>();
         ArrayList<String> saveBannerImageList = new ArrayList<>();
         for (String lS : sBannerImageList) {
-            String lSubstring = lS.substring(lS.lastIndexOf("/") + 1);
-            saveBannerImageList.add(lSubstring);
+            String fileName = lS.substring(lS.lastIndexOf("/") + 1);
+            saveBannerImageList.add(fileName);
             String url = NetworkConfiguration.ADVERT_FILE_URL + lS;
-            if (lBannerImageList != null && !lBannerImageList.isEmpty()) {
-                if (!lBannerImageList.contains(lSubstring)) {
+            if (lBannerImageList != null) {
+                if (!lBannerImageList.contains(fileName)) {
                     downLoadUrls.add(url);
                 }
             } else {
                 downLoadUrls.add(url);
             }
         }
-        downLoadAdvertPicture(downLoadUrls, lPicFilePath, saveBannerImageList);
+        XLog.tag(TAG).i("远程广告包信息为:" + saveBannerImageList);
+        downLoadAdvertPicture(downLoadUrls, lPicFilePath, saveBannerImageList, advertMould);
     }
 
-    private void downLoadAdvertPicture(@NonNull List<String> urlList, String savePath, @NonNull List<String> bannerList) {
-        if (!urlList.isEmpty()) {
-            for (String url : urlList) {
-                XLog.tag(TAG).i("广告包下载地址：" + url + " " + urlList.size());
-                String fileName = url.substring(url.lastIndexOf("/") + 1);
-                String lFileSavePath = savePath + fileName;
-                if (url.length() > 5) {
-                    remoteRepository.downLoadFile(url, lFileSavePath, new Callback.CommonCallback<>() {
-                        @Override
-                        public void onSuccess(@NonNull File result) {
-                            if (result.exists() && result.length() > 0) {
-                                downLoadCount++;
-                            } else {
-                                XLog.tag(TAG).i("文件无效");
-                            }
-                            XLog.tag(TAG).i("广告包内容下载成功" + downLoadCount + " 文件名：" + result.getName());
-                            if (downLoadCount == urlList.size()) {
-                                String bannerListString = JSON.toJSONString(bannerList);
-                                XLog.tag(TAG).i("广告信息：" + bannerListString);
-                                localRepository.updateAndInsertAdvertContent(new AdvertContent(1, bannerListString));
-                                downLoadCount = 0;
-                                XLog.tag(TAG).i("广告包全部下载成功");
-                            }
+    private void downLoadAdvertPicture(@NonNull HashSet<String> urlList, String savePath, @NonNull List<String> bannerList, AdvertMould advertMould) {
+        ThreadPoolUtils.getInstance().doThings(new Runnable() {
+            @Override
+            public void run() {
+                if (!urlList.isEmpty()) {
+                    for (String url : urlList) {
+                        XLog.tag(TAG).i("广告包下载地址：" + url + " " + urlList.size());
+                        String fileName = url.substring(url.lastIndexOf("/") + 1);
+                        String lFileSavePath = savePath + fileName;
+                        if (url.length() > 5) {
+                            remoteRepository.downLoadFile(url, lFileSavePath, new Callback.CommonCallback<>() {
+                                @Override
+                                public void onSuccess(@NonNull File result) {
+                                    if (result.exists() && result.length() > 0) {
+                                        downLoadCount++;
+                                    } else {
+                                        XLog.tag(TAG).i("文件无效");
+                                    }
+                                    if (downLoadCount == urlList.size()) {
+                                        String bannerListString = JSON.toJSONString(bannerList);
+                                        localRepository.updateAndInsertAdvertContent(new AdvertContent(1, bannerListString));
+                                        localRepository.updateAndInsertAdvertMould(advertMould);
+                                        downLoadCount = 0;
+                                        XLog.tag(TAG).i("广告包全部下载成功");
+                                    }
+                                }
+
+                                @Override
+                                public void onError(@NonNull Throwable ex, boolean isOnCallback) {
+                                    XLog.tag(TAG).i("下载广告包失败:" + ex.getMessage());
+                                    ex.printStackTrace();
+                                }
+
+                                @Override
+                                public void onCancelled(CancelledException cex) {
+
+                                }
+
+                                @Override
+                                public void onFinished() {
+
+                                }
+                            });
+                        } else {
+                            XLog.tag(TAG).i("获取新的广告包下载地址为空");
                         }
-
-                        @Override
-                        public void onError(@NonNull Throwable ex, boolean isOnCallback) {
-                            XLog.tag(TAG).i("下载广告包失败:" + ex.getMessage());
-                            ex.printStackTrace();
-                        }
-
-                        @Override
-                        public void onCancelled(CancelledException cex) {
-
-                        }
-
-                        @Override
-                        public void onFinished() {
-
-                        }
-                    });
+                    }
                 } else {
-                    XLog.tag(TAG).i("获取新的广告包下载地址为空");
+                    localRepository.updateAndInsertAdvertMould(advertMould);
+                    String bannerListString = JSON.toJSONString(bannerList);
+                    localRepository.updateAndInsertAdvertContent(new AdvertContent(1, bannerListString));
+                    XLog.tag(TAG).i("不需要更新广告包");
                 }
             }
-        } else {
-            XLog.tag(TAG).i("不需要更新广告包");
-        }
+        });
     }
 
     private void getAppInfo() {
@@ -865,9 +888,13 @@ public class Repository {
     }
 
     public void outGoods(String outCode) {
-        mDeviceState.postValue(DeviceStateConstant.DEVICE_PROCESSING);
-        deviceState = DeviceStateConstant.DEVICE_PROCESSING;
-        remoteRepository.getOutShoppingGoodsInfo(outCode);
+        if (deviceState == DeviceStateConstant.DEVICE_NORMAL) {
+            mDeviceState.postValue(DeviceStateConstant.DEVICE_PROCESSING);
+            deviceState = DeviceStateConstant.DEVICE_PROCESSING;
+            remoteRepository.getOutShoppingGoodsInfo(outCode);
+        } else {
+            XLog.tag(TAG).i("设备正在出货");
+        }
     }
 
     public void shoppingGoods(String orderNO, List<Goods> shoppingGoodsList, List<ResultShoppingGoods> resultShoppingGoods, boolean isOutGoods) {
@@ -902,8 +929,8 @@ public class Repository {
                                     mDeviceState.postValue(DeviceStateConstant.DEVICE_OUT_GOODS_FAIL);
                                     deviceState = DeviceStateConstant.DEVICE_NORMAL;
                                 } else {
-                                    mDeviceState.postValue(DeviceStateConstant.DEVICE_OUT_GOODS_PART_FAIL);
                                     getPackage();
+                                    mDeviceState.postValue(DeviceStateConstant.DEVICE_OUT_GOODS_PART_FAIL);
                                 }
                                 failCount = 0;
                                 outNo = 0;
@@ -967,14 +994,14 @@ public class Repository {
                                 });
                             }
                             if (failCount == 0) {
-                                mDeviceState.postValue(DeviceStateConstant.DEVICE_OUT_GOODS_SUCCESSFUL);
                                 getPackage();
+                                mDeviceState.postValue(DeviceStateConstant.DEVICE_OUT_GOODS_SUCCESSFUL);
                             } else if (failCount == size) {
                                 mDeviceState.postValue(DeviceStateConstant.DEVICE_OUT_GOODS_FAIL);
                                 deviceState = DeviceStateConstant.DEVICE_NORMAL;
                             } else {
-                                mDeviceState.postValue(DeviceStateConstant.DEVICE_OUT_GOODS_PART_FAIL);
                                 getPackage();
+                                mDeviceState.postValue(DeviceStateConstant.DEVICE_OUT_GOODS_PART_FAIL);
                             }
                             outNo = 0;
                             orderState = 0;
@@ -1053,7 +1080,7 @@ public class Repository {
         TimerManager.scheduledAndDelayTasksOnSecond(TimerManager.TIMEOUT_DETECTION_TIME, TimerManager.TEMPERATURE_HUMIDITY_TIME, new TimerTask() {
             @Override
             public void run() {
-                if (deviceState == DeviceStateConstant.DEVICE_NORMAL && !isOutPackage) {
+                if (deviceState == DeviceStateConstant.DEVICE_NORMAL) {
                     deviceManger.addDeviceDataListener(new OnDataListener() {
                         @Override
                         public void onDataReceived(byte[] bytes) {

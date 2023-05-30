@@ -104,15 +104,6 @@ public class LocalRepository {
         }
     }
 
-    public LiveData<AdvertContent> getAdvertContentByLiveData() {
-        try {
-            return new getAdvertContentByLiveDataTask().execute().get();
-        } catch (ExecutionException | InterruptedException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
     private class addGoodsTask extends AsyncTask<Goods, Void, Void> {
         @Override
         protected Void doInBackground(Goods... goods) {
@@ -177,13 +168,6 @@ public class LocalRepository {
         @Override
         protected LiveData<AdvertMould> doInBackground(Void... voids) {
             return mDeviceDao.getAdvertMouldByLiveData();
-        }
-    }
-
-    private class getAdvertContentByLiveDataTask extends AsyncTask<Void, Void, LiveData<AdvertContent>> {
-        @Override
-        protected LiveData<AdvertContent> doInBackground(Void... voids) {
-            return mDeviceDao.getAdvertContentByLiveData();
         }
     }
 

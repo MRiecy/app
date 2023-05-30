@@ -11,12 +11,8 @@ import java.util.TimerTask;
 public class TimerManager {
     //时间间隔(一天)
     public static final long LOG_UPLOAD_TIME = 24 * 60 * 60 * 1000;
-    public static final long DEVICE_SELF_TEST_TIME = 24 * 60 * 60 * 1000;
-    public static final long HUMAN_INDUCTION_TIME = 15 * 1000;
-    public static final long CLOSE_DOOR_TIME = 30 * 1000;
-    public static final long CLOSE_DOOR_TIP_TIME = 15 * 1000;
     public static final long TIMEOUT_DETECTION_TIME = 10 * 1000;
-    public static final long TEMPERATURE_HUMIDITY_TIME = 40 * 1000;
+    public static final long TEMPERATURE_HUMIDITY_TIME = 60 * 1000;
     public static final long DELAY_UP_APP = 60 * 1000;
 
     private TimerManager() {
