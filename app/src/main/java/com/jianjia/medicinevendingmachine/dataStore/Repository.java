@@ -254,7 +254,7 @@ public class Repository {
                                     lShoppingGoodsList.add(lGoods);
                                 }
                             } else {
-                                XLog.tag(TAG).i("订单货道信息异常");
+                                XLog.tag(TAG).i("订单货道异常");
                             }
                         }
                         Collections.sort(lShoppingGoodsList);
@@ -263,13 +263,14 @@ public class Repository {
                         } else if (lShoppingGoodsList.size() == productCount) {
                             shoppingGoods(orderNo, lShoppingGoodsList, resultShoppingGoodsList, true);
                         } else {
-                            XLog.tag(TAG).i("订单信息异常");
+                            XLog.tag(TAG).i("订单货道异常信息");
                             mDeviceState.postValue(DeviceStateConstant.DEVICE_ORDER_ERROR);
                             deviceState = DeviceStateConstant.DEVICE_NORMAL;
                         }
                     } else {
-                        XLog.tag(TAG).i("出货接收信息:" + deviceGoodsStr);
+                        XLog.tag(TAG).i("获取订单信息失败:" + deviceGoodsStr);
                         mDeviceState.postValue(DeviceStateConstant.DEVICE_NO_ORDER);
+                        deviceState = DeviceStateConstant.DEVICE_NORMAL;
                     }
                 } else if (Arrays.equals(cCode, CMD_CODE_OUT_GOODS_RESULT)) {//出货结果
                     int outGoodsFlag = Integer.parseInt(bodyStr.substring(0, 3).trim());
