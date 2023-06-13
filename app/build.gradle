@@ -5,14 +5,14 @@ plugins {
 
 android {
     namespace 'com.jianjia.medicinevendingmachine'
-    compileSdk 33
+    compileSdk 34
 
     defaultConfig {
         applicationId "com.jianjia.medicinevendingmachine"
         minSdk 21
-        targetSdk 33
-        versionCode 35
-        versionName "1.41"
+        targetSdk 34
+        versionCode 37
+        versionName "1.43"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         javaCompileOptions {
@@ -66,6 +66,7 @@ dependencies {
     implementation 'androidx.hilt:hilt-work:1.0.0'
     annotationProcessor 'androidx.hilt:hilt-compiler:1.0.0'
     implementation 'com.github.547394:SerialPortManager:1.0.12'
+    implementation 'com.github.bumptech.glide:glide:4.15.1'
 }
 
 static def buildTime() {

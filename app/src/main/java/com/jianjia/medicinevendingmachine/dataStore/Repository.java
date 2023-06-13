@@ -1089,7 +1089,7 @@ public class Repository {
                             super.onDataReceived(bytes);
                             String resultMessage = new String(bytes, StandardCharsets.US_ASCII);
                             XLog.tag(TAG).i("温湿度返回的数据：" + resultMessage);
-                            if (resultMessage.startsWith("temp:")) {
+                            if ("temp:".startsWith(resultMessage)) {
                                 String[] tempAndHum = resultMessage.replace("temp:", "").replace("\r\n", "").split(",");
                                 XLog.tag(TAG).i("温度：" + tempAndHum[0] + " " + "湿度：" + tempAndHum[1]);
                                 int lI = Integer.parseInt(tempAndHum[0]);

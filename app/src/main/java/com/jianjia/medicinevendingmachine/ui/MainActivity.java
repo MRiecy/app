@@ -3,10 +3,11 @@ package com.jianjia.medicinevendingmachine.ui;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.view.ViewGroup;
-import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -19,13 +20,15 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.bumptech.glide.Glide;
 import com.elvishew.xlog.XLog;
+import com.jianjia.medicinevendingmachine.R;
+import com.jianjia.medicinevendingmachine.constants.DeviceStateConstant;
 import com.jianjia.medicinevendingmachine.constants.FilePathConstant;
 import com.jianjia.medicinevendingmachine.dataStore.localrepository.AdvertContent;
 import com.jianjia.medicinevendingmachine.dataStore.localrepository.AdvertMould;
@@ -36,15 +39,18 @@ import com.jianjia.medicinevendingmachine.viewMoel.MainViewModel;
 import org.xutils.common.util.FileUtil;
 
 import java.io.File;
-import java.util.Locale;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import dagger.hilt.android.AndroidEntryPoint;
 
 @AndroidEntryPoint
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     private String TAG = "MainActivity";
     private MainViewModel mainViewModel;
     private ActivityMainBinding viewBind;
+    private Timer mTimer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
         webSettings.setLoadWithOverviewMode(true);
         webSettings.setAllowFileAccess(true);
         webSettings.setDefaultTextEncodingName("utf-8");
-        webSettings.setLayoutAlgorithm(WebSettings.LayoutAlgorithm.NORMAL);
+        webSettings.setLayoutAlgorithm(WebSettings.LayoutAlgorithm.SINGLE_COLUMN);
         webSettings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
         webSettings.setLoadWithOverviewMode(true);
         webSettings.setMediaPlaybackRequiresUserGesture(false);
@@ -73,7 +79,98 @@ public class MainActivity extends AppCompatActivity {
         webSettings.setDatabaseEnabled(true);
         viewBind.webAdvert.setLayerType(ViewGroup.LAYER_TYPE_HARDWARE, null);
         viewBind.webAdvert.setWebViewClient(new MyWebViewClient());
-        viewBind.webAdvert.addJavascriptInterface(new JavaObject(), "JavaObject");
+        viewBind.llTips.setVisibility(View.GONE);
+        viewBind.inKeyboard.glKeyboard.setVisibility(View.GONE);
+        viewBind.btGoodsOut.setOnClickListener(v -> {
+            viewBind.webAdvert.setVisibility(View.GONE);
+            viewBind.webAdvert.pauseTimers();
+            viewBind.inKeyboard.glKeyboard.setVisibility(View.VISIBLE);
+            mTimer = new Timer();
+            mTimer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    runOnUiThread(() -> {
+                        viewBind.inKeyboard.glKeyboard.setVisibility(View.GONE);
+                        viewBind.webAdvert.resumeTimers();
+                        viewBind.webAdvert.setVisibility(View.VISIBLE);
+                        viewBind.inKeyboard.tvInput.setText("");
+                        viewBind.btGoodsOut.setClickable(true);
+                    });
+                }
+            }, 15000);
+        });
+        addKeyBoardClickListener();
+
+    }
+
+    private void addKeyBoardClickListener() {
+        viewBind.inKeyboard.btOne.setOnClickListener(this);
+        viewBind.inKeyboard.btTwo.setOnClickListener(this);
+        viewBind.inKeyboard.btThree.setOnClickListener(this);
+        viewBind.inKeyboard.btFour.setOnClickListener(this);
+        viewBind.inKeyboard.btFive.setOnClickListener(this);
+        viewBind.inKeyboard.btSix.setOnClickListener(this);
+        viewBind.inKeyboard.btSeven.setOnClickListener(this);
+        viewBind.inKeyboard.btEight.setOnClickListener(this);
+        viewBind.inKeyboard.btNine.setOnClickListener(this);
+        viewBind.inKeyboard.btZero.setOnClickListener(this);
+        viewBind.inKeyboard.btDelete.setOnClickListener(this);
+        viewBind.inKeyboard.btConfirm.setOnClickListener(this);
+    }
+
+    @SuppressLint({"SetTextI18n", "NonConstantResourceId"})
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.bt_one:
+                viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "1");
+                break;
+            case R.id.bt_two:
+                viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "2");
+                break;
+            case R.id.bt_three:
+                viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "3");
+                break;
+            case R.id.bt_four:
+                viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "4");
+                break;
+            case R.id.bt_five:
+                viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "5");
+                break;
+            case R.id.bt_six:
+                viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "6");
+                break;
+            case R.id.bt_seven:
+                viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "7");
+                break;
+            case R.id.bt_eight:
+                viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "8");
+                break;
+            case R.id.bt_nine:
+                viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "9");
+                break;
+            case R.id.bt_zero:
+                viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "0");
+                break;
+            case R.id.bt_delete:
+                String pickCode = viewBind.inKeyboard.tvInput.getText().toString();
+                if (pickCode.length() > 0) {
+                    viewBind.inKeyboard.tvInput.setText(pickCode.substring(0, pickCode.length() - 1));
+                }
+                break;
+            case R.id.bt_confirm:
+                viewBind.btGoodsOut.setClickable(false);
+                String outGoodsCode = viewBind.inKeyboard.tvInput.getText().toString();
+                XLog.tag(TAG).i("取货码是：" + outGoodsCode);
+                if (outGoodsCode.length() == 6) {
+                    viewBind.inKeyboard.glKeyboard.setVisibility(View.GONE);
+                    viewBind.llTips.setVisibility(View.VISIBLE);
+                    mainViewModel.outGoods(outGoodsCode);
+                    viewBind.inKeyboard.tvInput.setText("");
+                    mTimer.cancel();
+                }
+                break;
+        }
     }
 
     private void init() {
@@ -91,29 +188,22 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void addDataObserver() {
-        mainViewModel.getDeviceNoValue().observe(this, new Observer<String>() {
-            @Override
-            public void onChanged(String s) {
-                String appInfo = "No." + s + " Ver." + AppUtils.getAppVersionName(MainActivity.this);
-                viewBind.tvAppInfo.setText(appInfo);
-            }
+        mainViewModel.getDeviceNoValue().observe(this, s -> {
+            String appInfo = "No." + s + " Ver." + AppUtils.getAppVersionName(MainActivity.this);
+            viewBind.tvDeviceInfo.setText(appInfo);
         });
 
-        mainViewModel.getTempAndHumValue().observe(this, new Observer<String>() {
-            @Override
-            public void onChanged(String s) {
-                JSONObject jsonObject = (JSONObject) JSON.parse(s);
-                String temp = (String) jsonObject.get("temp");
-                String hum = (String) jsonObject.get("hum");
-                String tempAndHum = "温度：" + temp + "°C" + " 湿度：" + hum + "%RH";
-                viewBind.tvTemHum.setText(tempAndHum);
-            }
+        mainViewModel.getTempAndHumValue().observe(this, s -> {
+            JSONObject jsonObject = (JSONObject) JSON.parse(s);
+            String temp = (String) jsonObject.get("temp");
+            String hum = (String) jsonObject.get("hum");
+            String tempAndHum = "温度：" + temp + "°C" + " 湿度：" + hum + "%RH";
+            viewBind.tvTemHum.setText(tempAndHum);
         });
 
         mainViewModel.getDeviceState().observe(this, integer -> {
             XLog.tag(TAG).i("android调用了js的togglePage方法：" + integer);
-            viewBind.webAdvert.evaluateJavascript("javascript:togglePage(" + integer + ")",
-                    value -> XLog.tag(TAG).i("android调用了js的togglePage方法返回：" + value));
+            changPage(integer);
         });
 
         mainViewModel.getAdvertMould().observe(this, advertMould -> {
@@ -121,56 +211,69 @@ public class MainActivity extends AppCompatActivity {
             loadWeb();
         });
 
-        mainViewModel.getQrPath().observe(this, new Observer<String>() {
-            @Override
-            public void onChanged(String s) {
-                setQR();
+        mainViewModel.getQrPath().observe(this, s -> {
+            XLog.tag(TAG).i("二维码地址：" + s);
+            if (s != null && !s.equals("")) {
+                Glide.with(MainActivity.this)
+                        .load(s)
+                        .override(240, 240)
+                        .into(viewBind.ivQr);
+                viewBind.tvTic.setVisibility(View.VISIBLE);
+            } else {
+                XLog.tag(TAG).i("二维码信息为空");
             }
         });
     }
 
-    private void setQR() {
-        String path = mainViewModel.getQrPath().getValue();
-        Log.i(TAG, "设置二维码:" + path);
-        if (path != null && !path.equals("")) {
-            JSONObject lJSONObject = new JSONObject();
-            lJSONObject.put("qrCode", path);
-            lJSONObject.put("mobile", "");
-            String json = lJSONObject.toJSONString();
-            XLog.tag(TAG).i("android调用了js的sendContent方法：" + json);
-            viewBind.webAdvert.evaluateJavascript("javascript:sendContent(" + json + ")",
-                    value -> XLog.tag("webView").i("android调用了js的sendContent方法返回：" + value));
+    public void changPage(int deviceState) {
+        String tips = null;
+        int tipsLogo = -1;
+        if (deviceState == DeviceStateConstant.DEVICE_PROCESSING) {
+            tips = "正在处理中,请不要走开";
+            tipsLogo = R.mipmap.loading;
+        } else if (deviceState == DeviceStateConstant.DEVICE_NO_ORDER) {
+            tips = "订单不存在";
+            tipsLogo = R.mipmap.fail;
+        } else if (deviceState == DeviceStateConstant.DEVICE_ORDER_ERROR) {
+            tips = "订单错误";
+            tipsLogo = R.mipmap.fail;
+        } else if (deviceState == DeviceStateConstant.DEVICE_OUTING_GOODS) {
+            tips = "出货中,请不要走开";
+            tipsLogo = R.mipmap.outting_goods;
+        } else if (deviceState == DeviceStateConstant.DEVICE_OUT_GOODS_FAIL) {
+            tips = "出货失败,请联系客服处理";
+            tipsLogo = R.mipmap.fail;
+        } else if (deviceState == DeviceStateConstant.DEVICE_OUT_GOODS_PART_FAIL) {
+            tips = "出货部分失败,请联系客服处理";
+            tipsLogo = R.mipmap.fail;
+        } else if (deviceState == DeviceStateConstant.DEVICE_OUT_GOODS_SUCCESSFUL) {
+            tips = "出货完成，请及时拿走您的商品";
+            tipsLogo = R.mipmap.successful;
         }
-    }
-
-    private void setAdvertContent() {
-        AdvertContent lAdvertContent = mainViewModel.getAdvertContent();
-        if (lAdvertContent == null) {
-            XLog.tag(TAG).i("本地广告内容为空");
-            return;
+        if (tips != null) {
+            viewBind.tvTips.setText(tips);
         }
-        String lContent = lAdvertContent.getContent();
-        Log.i(TAG, "加载广告包：" + lContent);
-        String lS = "";
-        if (lContent != null && !lContent.equals("")) {
-            JSONArray advertJson = new JSONArray();
-            JSONArray lObjects = JSONArray.parseArray(lContent);
-            for (Object lObject : lObjects) {
-                String banner = (String) lObject;
-                JSONObject lJSONObject = new JSONObject();
-                if (banner.toUpperCase(Locale.ROOT).endsWith("MP4")) {
-                    lJSONObject.put("type", 2);
-                } else {
-                    lJSONObject.put("type", 1);
-                }
-                lJSONObject.put("url", banner);
-                advertJson.add(lJSONObject);
-            }
-            lS = JSON.toJSONString(advertJson);
+        if (tipsLogo != -1) {
+            viewBind.ivTipsLogo.setImageResource(tipsLogo);
         }
-        viewBind.webAdvert.evaluateJavascript("javascript:setSwiper(" + lS + ")", value ->
-                Log.i(TAG, "android调用了js的setSwiper方法返回：" + value));
-        new Thread(() -> deleteOldFile(lContent)).start();
+        switch (deviceState) {
+            case DeviceStateConstant.DEVICE_NO_ORDER:
+            case DeviceStateConstant.DEVICE_ORDER_ERROR:
+            case DeviceStateConstant.DEVICE_OUT_GOODS_FAIL:
+            case DeviceStateConstant.DEVICE_OUT_GOODS_PART_FAIL:
+            case DeviceStateConstant.DEVICE_OUT_GOODS_SUCCESSFUL:
+                new Timer().schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        runOnUiThread(() -> {
+                            viewBind.llTips.setVisibility(View.GONE);
+                            viewBind.webAdvert.resumeTimers();
+                            viewBind.webAdvert.setVisibility(View.VISIBLE);
+                            viewBind.btGoodsOut.setClickable(true);
+                        });
+                    }
+                }, 15000);
+        }
     }
 
     private void deleteOldFile(String bannerList) {
@@ -196,16 +299,32 @@ public class MainActivity extends AppCompatActivity {
         AdvertMould lAdvertMould = mainViewModel.getAdvertMouldNoLive();
         if (lAdvertMould == null || lAdvertMould.getMouldId() == 0 || lAdvertMould.getMouldVersion() == 0.0) {
             Log.i(TAG, "加载默认网页");
-            viewBind.webAdvert.loadUrl(FilePathConstant.BIG_SCREEN_ADVERTISING_DF_PATH);
+            Configuration newConfig = getResources().getConfiguration();
+            if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                viewBind.webAdvert.loadUrl(FilePathConstant.BIG_SCREEN_ADVERTISING_DF_PATH_LAND);
+                //横屏
+            } else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
+                //竖屏
+                viewBind.webAdvert.loadUrl(FilePathConstant.BIG_SCREEN_ADVERTISING_DF_PATH_PORT);
+            }
         } else {
             Log.i(TAG, "加载sdk网页");
-            viewBind.webAdvert.loadUrl(FilePathConstant.BIG_SCREEN_ADVERTISING_DF_PATH);
-            //   viewBind.webAdvert.loadUrl("file://" + FilePathConstant.FILE_PATH + "index.html");
+            AdvertContent lAdvertContent = mainViewModel.getAdvertContent();
+            if (lAdvertContent == null || lAdvertContent.getContent() == null || lAdvertContent.getContent().equals("")) {
+                XLog.tag(TAG).i("本地广告内容为空");
+            } else {
+                List<String> lFileList = JSONArray.parseArray(lAdvertContent.getContent(), String.class);
+                String bannerList = String.join(",", lFileList);
+                XLog.tag(TAG).i("加载的广告包内容为：" + bannerList);
+                viewBind.webAdvert.loadUrl("file://" + FilePathConstant.FILE_PATH + "index.html" + "?BannerList=" + bannerList);
+                new Thread(() -> deleteOldFile(bannerList)).start();
+            }
         }
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == 0) {
             if (grantResults.length != 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
@@ -220,23 +339,10 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
     }
 
-    public class JavaObject {
-        public JavaObject() {
-        }
-
-        @JavascriptInterface
-        public void outGoodsCode(String message) {
-            XLog.tag(TAG).i("js调Android指令：" + message);
-            mainViewModel.outGoods(message);
-        }
-    }
 
     class MyWebViewClient extends WebViewClient {
         @Override
         public boolean shouldOverrideUrlLoading(@NonNull WebView view, String url) {
-            if (!url.startsWith("https") || !url.startsWith("http")) {
-                return false;
-            }
             view.loadUrl(url);
             return true;
         }
@@ -247,14 +353,11 @@ public class MainActivity extends AppCompatActivity {
             if (!view.getSettings().getLoadsImagesAutomatically()) {
                 view.getSettings().setLoadsImagesAutomatically(true);
             }
-            setQR();
-            setAdvertContent();
         }
 
         @Nullable
         @Override
         public WebResourceResponse shouldInterceptRequest(WebView view, String url) {
-            //  XLog.tag(TAG).i("MyWebViewClient" + url);
             return super.shouldInterceptRequest(view, url);
         }
 
@@ -268,14 +371,12 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceivedError(@NonNull WebView view, WebResourceRequest request, @NonNull WebResourceError error) {
             super.onReceivedError(view, request, error);
-            //  XLog.tag(TAG).i("加载大屏默认广告");
             XLog.tag(TAG).i("web " + error.getDescription() + "");
         }
 
         @Override
         public void onReceivedError(@NonNull WebView view, int errorCode, String description, String failingUrl) {
             super.onReceivedError(view, errorCode, description, failingUrl);
-            //     XLog.tag(TAG).i("加载大屏默认广告");
             XLog.tag(TAG).i("web " + description);
         }
     }

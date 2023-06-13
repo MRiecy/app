@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title></title>
+	</head>
+	<body>
+	</body>
+</html>
+<!DOCTYPE html>
+
+<html lang="en" class="no-js">
+
+	<head>
+
+		<meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+
+		<title></title>
+		 <link rel="stylesheet" href="css/admin.css" />
+		<link rel="stylesheet" type="text/css" href="css/component.css" />
+
+		<script src="js/modernizr.custom.js"></script>
+
+	</head>
+
+	<body>
+
+			<div class="main">
+
+
+				<!--<div class="fix">
+					<video controls id="myvideo" autoplay="autoplay" src="vedio/1.mp4" style="width:81%; object-fit: fill" ></video>
+
+				</div>-->
+				<ul id="cbp-bislideshow" class="cbp-bislideshow">
+
+					<li><img src="img/bg_1.png" alt="image01"/></li>
+
+				<!--	<li><img src="img/bg_2.jpg" alt="image02"/></li>
+
+					<li><img src="img/bg_3.jpg" alt="image03"/></li>-->
+
+				</ul>
+				
+			</div>
+
+		<script src="js/jquery.min.js"></script>
+
+		<script src="js/jquery.imagesloaded.min.js"></script>
+
+		<script src="js/cbpBGSlideshow.min.js"></script>
+
+		<script>
+
+			$(function() {
+
+				cbpBGSlideshow.init();
+
+			});
+
+		</script>
+
+		<script type="text/javascript">
+			var vlist=['vedio/1.mp4','vedio/2.mp4','vedio/3.mp4','vedio/4.mp4','vedio/5.mp4','vedio/6.mp4','vedio/7.mp4','vedio/8.mp4','vedio/9.mp4','vedio/10.mp4','vedio/11.mp4','vedio/12.mp4'];
+			var vlen=vlist.length;
+			var curr=0;
+			var vid=document.getElementById("myvideo");
+			vid.onended=function(){
+				vid.src=vlist[curr+1];
+				curr++;
+				if(curr>=vlen){curr=0; vid.src=vlist[0]}
+				vid.play();
+			}
+		</script>
+
+<div style="text-align:center;clear:both">
+
+</div>
+
+</body>
+
+</html>

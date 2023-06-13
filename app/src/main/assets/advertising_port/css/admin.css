@@ -1,0 +1,30 @@
+
+input{font-family:'microsoft yahei';  font-size:14px; color:#878787; margin:0px; padding:0px; outline:0;}
+a{ color:#666; text-decoration:none;}
+a:visited{  text-decoration:none;}
+ul,li{ margin:0px; padding:0px; list-style:none;}
+dt,dl,dd,p{ margin:0px; padding:0px;}
+i,em{font-style:normal;}
+.clear{ clear: both;}
+.main{ width: 94vw; /*height: 100vh;*/ margin: 0 auto;}
+
+.main .title{ width: 94vw; margin: 0 auto;position: relative; color: #fff; border-bottom: #463fa8 solid 1px; height: 10vh;}
+.main .title .i{display: inline-block; line-height: 10vh; font-size: 2vw; letter-spacing: 8px; float: left;}
+
+.main .title .T_r{display: inline-block; position: absolute; right: 0; top: 0;}
+.main .title .time{float: left; margin-top:1.8vh ; height: 6vh;  text-align: center; padding-right: 4vw; border-right: #463fa8 solid 1px;}
+.main .title .time .sj{ font-size: 1.2vw;}
+.main .title .time .dqsj{ font-size: 1vw; padding-top: 0.5vw;}
+
+.main .title .install{display: inline-block; height: 6vh;margin-top:1.5vh ;  text-align: center; padding:0 4vw; position: relative; text-align: center;}
+.main .title .install .SetUp{width:2vw; display: block;}
+.main .title .install .wz{ font-size: 1vw; color: #fff; margin-top: 0.5vh; margin-left: -0.3vw;}
+.main .title .install .setList{ position: absolute; top: 9vh; right: 1vw; width: 8vw; height: 10vh; background: #fff; border-radius: 4px; z-index: 999; text-align: center;}
+
+.main .title .install .setList .set_m{ display: block; position: relative;}
+
+.main .title .install .setList .set_m a{ display: block; height:4.9vh ; line-height: 4.9vh; width: 7vw; margin: 0 auto; color: #2b2b2b; font-size: 0.8vw; text-align: center;}
+.main .title .install .setList .set_m .on{ border-bottom: #e6e5e5 solid 1px;}
+.main .title .install .setList .set_m .jt{ position: absolute; top: -1vh; left: 37%; width: 2vw;}
+
+.main .centent{ width: 94vw; margin:0 auto; height: 89vh; }
