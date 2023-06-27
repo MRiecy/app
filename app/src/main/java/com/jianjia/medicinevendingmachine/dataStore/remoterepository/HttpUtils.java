@@ -15,8 +15,7 @@ import java.io.File;
 import javax.inject.Inject;
 
 public class HttpUtils {
-    @NonNull
-    private String TAG = "HttpUtils";
+    private final String TAG = "HttpUtils";
     private Callback.Cancelable cancelable;
 
     @Inject
@@ -70,7 +69,6 @@ public class HttpUtils {
             requestParams.setAutoRename(true);
             requestParams.setMaxRetryCount(5);
             requestParams.setSaveFilePath(savePath);
-            // 下载完成后自动为文件命名
             cancelable = x.http().get(requestParams, callBack);
         }
     }

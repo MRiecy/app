@@ -4,7 +4,10 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.net.ConnectivityManager;
+import android.net.Network;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -34,6 +37,8 @@ import com.jianjia.medicinevendingmachine.dataStore.localrepository.AdvertConten
 import com.jianjia.medicinevendingmachine.dataStore.localrepository.AdvertMould;
 import com.jianjia.medicinevendingmachine.databinding.ActivityMainBinding;
 import com.jianjia.medicinevendingmachine.utils.AppUtils;
+import com.jianjia.medicinevendingmachine.utils.NetUtils;
+import com.jianjia.medicinevendingmachine.utils.ThreadPoolUtils;
 import com.jianjia.medicinevendingmachine.viewMoel.MainViewModel;
 
 import org.xutils.common.util.FileUtil;
@@ -50,7 +55,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private String TAG = "MainActivity";
     private MainViewModel mainViewModel;
     private ActivityMainBinding viewBind;
-    private Timer mTimer;
+    private CountDownTimer mTimer;
+    private boolean mIsFirst = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,36 +77,39 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         webSettings.setAllowFileAccess(true);
         webSettings.setDefaultTextEncodingName("utf-8");
         webSettings.setLayoutAlgorithm(WebSettings.LayoutAlgorithm.SINGLE_COLUMN);
-        webSettings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
+        webSettings.setCacheMode(WebSettings.LOAD_NO_CACHE);
+        webSettings.setJavaScriptEnabled(true);
         webSettings.setLoadWithOverviewMode(true);
         webSettings.setMediaPlaybackRequiresUserGesture(false);
-        webSettings.setJavaScriptEnabled(true);
-        webSettings.setDomStorageEnabled(true);
-        webSettings.setDatabaseEnabled(true);
         viewBind.webAdvert.setLayerType(ViewGroup.LAYER_TYPE_HARDWARE, null);
         viewBind.webAdvert.setWebViewClient(new MyWebViewClient());
-        viewBind.llTips.setVisibility(View.GONE);
-        viewBind.inKeyboard.glKeyboard.setVisibility(View.GONE);
         viewBind.btGoodsOut.setOnClickListener(v -> {
-            viewBind.webAdvert.setVisibility(View.GONE);
             viewBind.webAdvert.pauseTimers();
+            viewBind.webAdvert.setVisibility(View.GONE);
+            viewBind.btGoodsOut.setVisibility(View.GONE);
             viewBind.inKeyboard.glKeyboard.setVisibility(View.VISIBLE);
-            mTimer = new Timer();
-            mTimer.schedule(new TimerTask() {
+            mTimer = new CountDownTimer(30000, 1000) {
                 @Override
-                public void run() {
+                public void onTick(long millisUntilFinished) {
                     runOnUiThread(() -> {
-                        viewBind.inKeyboard.glKeyboard.setVisibility(View.GONE);
-                        viewBind.webAdvert.resumeTimers();
-                        viewBind.webAdvert.setVisibility(View.VISIBLE);
-                        viewBind.inKeyboard.tvInput.setText("");
-                        viewBind.btGoodsOut.setClickable(true);
+                        viewBind.inKeyboard.tvBackTime.setText(" " + millisUntilFinished / 1000 + "s");
                     });
                 }
-            }, 15000);
+
+                @Override
+                public void onFinish() {
+                    XLog.tag(TAG).i("输入取货码超时");
+                    runOnUiThread(() -> {
+                        viewBind.inKeyboard.glKeyboard.setVisibility(View.GONE);
+                        viewBind.inKeyboard.tvInput.setText("");
+                        viewBind.webAdvert.resumeTimers();
+                        viewBind.webAdvert.setVisibility(View.VISIBLE);
+                        viewBind.btGoodsOut.setVisibility(View.VISIBLE);
+                    });
+                }
+            }.start();
         });
         addKeyBoardClickListener();
-
     }
 
     private void addKeyBoardClickListener() {
@@ -116,6 +125,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         viewBind.inKeyboard.btZero.setOnClickListener(this);
         viewBind.inKeyboard.btDelete.setOnClickListener(this);
         viewBind.inKeyboard.btConfirm.setOnClickListener(this);
+        viewBind.inKeyboard.tvBack.setOnClickListener(this);
     }
 
     @SuppressLint({"SetTextI18n", "NonConstantResourceId"})
@@ -159,23 +169,30 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
                 break;
             case R.id.bt_confirm:
-                viewBind.btGoodsOut.setClickable(false);
                 String outGoodsCode = viewBind.inKeyboard.tvInput.getText().toString();
                 XLog.tag(TAG).i("取货码是：" + outGoodsCode);
                 if (outGoodsCode.length() == 6) {
-                    viewBind.inKeyboard.glKeyboard.setVisibility(View.GONE);
-                    viewBind.llTips.setVisibility(View.VISIBLE);
-                    mainViewModel.outGoods(outGoodsCode);
-                    viewBind.inKeyboard.tvInput.setText("");
                     mTimer.cancel();
+                    viewBind.inKeyboard.tvInput.setText("");
+                    viewBind.inKeyboard.glKeyboard.setVisibility(View.GONE);
+                    mainViewModel.outGoods(outGoodsCode);
                 }
+                break;
+            case R.id.tv_back:
+                mTimer.cancel();
+                viewBind.inKeyboard.glKeyboard.setVisibility(View.GONE);
+                viewBind.inKeyboard.tvInput.setText("");
+                viewBind.webAdvert.resumeTimers();
+                viewBind.webAdvert.setVisibility(View.VISIBLE);
+                viewBind.btGoodsOut.setVisibility(View.VISIBLE);
                 break;
         }
     }
 
     private void init() {
-        mainViewModel.init(this);
+        mainViewModel.initRepositoryData();
         addDataObserver();
+        addNetworkMonitor();
     }
 
     private void requestPermission() {
@@ -189,7 +206,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void addDataObserver() {
         mainViewModel.getDeviceNoValue().observe(this, s -> {
-            String appInfo = "No." + s + " Ver." + AppUtils.getAppVersionName(MainActivity.this);
+            String appInfo = "No." + s + " Ver." + AppUtils.getAppVersionName(this);
             viewBind.tvDeviceInfo.setText(appInfo);
         });
 
@@ -202,13 +219,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         });
 
         mainViewModel.getDeviceState().observe(this, integer -> {
-            XLog.tag(TAG).i("android调用了js的togglePage方法：" + integer);
+            XLog.tag(TAG).i("设备状态：" + integer);
             changPage(integer);
         });
 
-        mainViewModel.getAdvertMould().observe(this, advertMould -> {
+        mainViewModel.getAdvertMouldByLiveData().observe(this, advertMould -> {
             Log.i(TAG, "更新模板");
-            loadWeb();
+            loadWeb(advertMould);
         });
 
         mainViewModel.getQrPath().observe(this, s -> {
@@ -228,27 +245,51 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void changPage(int deviceState) {
         String tips = null;
         int tipsLogo = -1;
-        if (deviceState == DeviceStateConstant.DEVICE_PROCESSING) {
-            tips = "正在处理中,请不要走开";
-            tipsLogo = R.mipmap.loading;
-        } else if (deviceState == DeviceStateConstant.DEVICE_NO_ORDER) {
-            tips = "订单不存在";
-            tipsLogo = R.mipmap.fail;
-        } else if (deviceState == DeviceStateConstant.DEVICE_ORDER_ERROR) {
-            tips = "订单错误";
-            tipsLogo = R.mipmap.fail;
-        } else if (deviceState == DeviceStateConstant.DEVICE_OUTING_GOODS) {
-            tips = "出货中,请不要走开";
-            tipsLogo = R.mipmap.outting_goods;
-        } else if (deviceState == DeviceStateConstant.DEVICE_OUT_GOODS_FAIL) {
-            tips = "出货失败,请联系客服处理";
-            tipsLogo = R.mipmap.fail;
-        } else if (deviceState == DeviceStateConstant.DEVICE_OUT_GOODS_PART_FAIL) {
-            tips = "出货部分失败,请联系客服处理";
-            tipsLogo = R.mipmap.fail;
-        } else if (deviceState == DeviceStateConstant.DEVICE_OUT_GOODS_SUCCESSFUL) {
-            tips = "出货完成，请及时拿走您的商品";
-            tipsLogo = R.mipmap.successful;
+        switch (deviceState) {
+            case DeviceStateConstant.DEVICE_PROCESSING:
+                tips = "正在处理中,请不要走开";
+                tipsLogo = R.mipmap.loading;
+                break;
+            case DeviceStateConstant.DEVICE_NO_NET:
+                tips = "无网络";
+                tipsLogo = R.drawable.no_net;
+                break;
+            case DeviceStateConstant.DEVICE_NO_ORDER:
+                tips = "订单不存在";
+                tipsLogo = R.mipmap.fail;
+                break;
+            case DeviceStateConstant.DEVICE_ORDER_ERROR:
+                tips = "订单错误";
+                tipsLogo = R.mipmap.fail;
+                break;
+            case DeviceStateConstant.DEVICE_ORDER_GET_TIME_OUT:
+                tips = "订单获取失败";
+                tipsLogo = R.mipmap.fail;
+                break;
+            case DeviceStateConstant.DEVICE_OUTING_GOODS:
+                tips = "出货中,请不要走开";
+                tipsLogo = R.mipmap.outting_goods;
+                break;
+            case DeviceStateConstant.DEVICE_OUT_GOODS_FAIL:
+                tips = "出货失败,请联系客服处理";
+                tipsLogo = R.mipmap.out_goods_fail;
+                break;
+            case DeviceStateConstant.DEVICE_OUT_GOODS_PART_FAIL:
+                tips = "出货部分失败,请联系客服处理";
+                tipsLogo = R.mipmap.out_goods_fail;
+                break;
+            case DeviceStateConstant.DEVICE_OUT_GOODS_SUCCESSFUL:
+                tips = "出货完成，请及时拿走您的商品";
+                tipsLogo = R.mipmap.successful;
+                break;
+            case DeviceStateConstant.DEVICE_UNREGISTERED:
+                tips = "设备未注册,请注册,本设备mac为:\n" + NetUtils.getMacAddress();
+                tipsLogo = R.mipmap.fail;
+                break;
+            case DeviceStateConstant.DEVICE_REGISTRATION_FAILED:
+                tips = "设备绑定失败";
+                tipsLogo = R.mipmap.fail;
+                break;
         }
         if (tips != null) {
             viewBind.tvTips.setText(tips);
@@ -262,23 +303,49 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case DeviceStateConstant.DEVICE_OUT_GOODS_FAIL:
             case DeviceStateConstant.DEVICE_OUT_GOODS_PART_FAIL:
             case DeviceStateConstant.DEVICE_OUT_GOODS_SUCCESSFUL:
+            case DeviceStateConstant.DEVICE_ORDER_GET_TIME_OUT:
                 new Timer().schedule(new TimerTask() {
                     @Override
                     public void run() {
-                        runOnUiThread(() -> {
-                            viewBind.llTips.setVisibility(View.GONE);
-                            viewBind.webAdvert.resumeTimers();
-                            viewBind.webAdvert.setVisibility(View.VISIBLE);
-                            viewBind.btGoodsOut.setClickable(true);
+                        ThreadPoolUtils.getInstance().doThings(() -> {
+                            if (NetUtils.ping()) {
+                                runOnUiThread(() -> {
+                                    viewBind.llTips.setVisibility(View.GONE);
+                                    viewBind.webAdvert.resumeTimers();
+                                    viewBind.webAdvert.setVisibility(View.VISIBLE);
+                                    viewBind.btGoodsOut.setVisibility(View.VISIBLE);
+                                });
+                            } else {
+                                runOnUiThread(() -> {
+                                    changPage(DeviceStateConstant.DEVICE_NO_NET);
+                                });
+                            }
                         });
                     }
-                }, 15000);
+                }, 10000);
+                break;
+            case DeviceStateConstant.DEVICE_NO_NET:
+            case DeviceStateConstant.DEVICE_REGISTRATION_FAILED:
+            case DeviceStateConstant.DEVICE_UNREGISTERED:
+            case DeviceStateConstant.DEVICE_PROCESSING:
+            case DeviceStateConstant.DEVICE_OUTING_GOODS:
+                viewBind.btGoodsOut.setVisibility(View.GONE);
+                viewBind.webAdvert.pauseTimers();
+                viewBind.webAdvert.setVisibility(View.GONE);
+                viewBind.llTips.setVisibility(View.VISIBLE);
+                break;
+            case DeviceStateConstant.DEVICE_NORMAL:
+                viewBind.llTips.setVisibility(View.GONE);
+                viewBind.webAdvert.resumeTimers();
+                viewBind.webAdvert.setVisibility(View.VISIBLE);
+                viewBind.btGoodsOut.setVisibility(View.VISIBLE);
+                break;
+
         }
     }
 
     private void deleteOldFile(String bannerList) {
         if (bannerList != null) {
-            Log.i(TAG, "轮播图文件名：" + bannerList);
             String path = FilePathConstant.FILE_PATH + FilePathConstant.BANNER_IMG;
             File file = new File(path);
             if (file.exists()) {
@@ -294,24 +361,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    public void loadWeb() {
+    public void loadWeb(AdvertMould advertMould) {
         Log.i(TAG, "加载网页");
-        AdvertMould lAdvertMould = mainViewModel.getAdvertMouldNoLive();
-        if (lAdvertMould == null || lAdvertMould.getMouldId() == 0 || lAdvertMould.getMouldVersion() == 0.0) {
+        if (advertMould == null || advertMould.getMouldId() == 0 || advertMould.getMouldVersion() == 0.0) {
             Log.i(TAG, "加载默认网页");
-            Configuration newConfig = getResources().getConfiguration();
-            if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                viewBind.webAdvert.loadUrl(FilePathConstant.BIG_SCREEN_ADVERTISING_DF_PATH_LAND);
-                //横屏
-            } else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
-                //竖屏
-                viewBind.webAdvert.loadUrl(FilePathConstant.BIG_SCREEN_ADVERTISING_DF_PATH_PORT);
-            }
+            loadDefaultWeb();
         } else {
             Log.i(TAG, "加载sdk网页");
             AdvertContent lAdvertContent = mainViewModel.getAdvertContent();
             if (lAdvertContent == null || lAdvertContent.getContent() == null || lAdvertContent.getContent().equals("")) {
                 XLog.tag(TAG).i("本地广告内容为空");
+                loadDefaultWeb();
             } else {
                 List<String> lFileList = JSONArray.parseArray(lAdvertContent.getContent(), String.class);
                 String bannerList = String.join(",", lFileList);
@@ -322,21 +382,71 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    private void loadDefaultWeb() {
+        Configuration newConfig = getResources().getConfiguration();
+        if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            viewBind.webAdvert.loadUrl(FilePathConstant.BIG_SCREEN_ADVERTISING_DF_PATH_LAND);
+            //横屏
+        } else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
+            //竖屏
+            viewBind.webAdvert.loadUrl(FilePathConstant.BIG_SCREEN_ADVERTISING_DF_PATH_PORT);
+        }
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == 0) {
             if (grantResults.length != 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Log.i(TAG, "获取权限后初始化设备" + FilePathConstant.LOG_FILE_PATH);
+                Log.i(TAG, "获取权限后初始化设备");
                 init();
             }
         }
     }
 
+    public void addNetworkMonitor() {
+        ThreadPoolUtils.getInstance().doThings(new Runnable() {
+            @Override
+            public void run() {
+                if (!NetUtils.ping()) {
+                    XLog.tag(TAG).i("无网络");
+                    runOnUiThread(() -> changPage(DeviceStateConstant.DEVICE_NO_NET));
+                }
+            }
+        });
+        XLog.tag(TAG).i("监听网络状态");
+        NetUtils.registerNetworkMonitor(this, new ConnectivityManager.NetworkCallback() {
+            @Override
+            public void onAvailable(@NonNull Network network) {
+                super.onAvailable(network);
+                XLog.tag(TAG).i("网络连接");
+                if (mIsFirst) {
+                    if (NetUtils.ping()) {
+                        mIsFirst = false;
+                        mainViewModel.initNet(MainActivity.this);
+                        NetUtils.getNetSignal(MainActivity.this);
+                    } else {
+                        runOnUiThread(() -> changPage(DeviceStateConstant.DEVICE_NO_NET));
+                    }
+                }
+            }
+
+            @Override
+            public void onLost(@NonNull Network network) {
+                super.onLost(network);
+                XLog.tag(TAG).i("网络断开");
+                if (mIsFirst) {
+                    runOnUiThread(() -> changPage(DeviceStateConstant.DEVICE_NO_NET));
+                }
+            }
+        });
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        NetUtils.unRegisterNetworkMonitor();
     }
 
 

@@ -85,7 +85,7 @@ public class DeviceSystemManger {
             while ((line = errorStream.readLine()) != null) {
                 message.append(line);
             }
-            XLog.tag(TAG).i("安装卸载app" + message);
+            XLog.tag(TAG).i("安装app" + message);
             if (!message.toString().contains("Failure")) {
                 XLog.tag(TAG).i("安装app成功");
                 isSuccess = true;

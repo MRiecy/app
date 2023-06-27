@@ -2,8 +2,6 @@ package com.jianjia.medicinevendingmachine.dataStore.remoterepository;
 
 import androidx.annotation.NonNull;
 
-import java.util.Objects;
-
 public class ResultShoppingGoods {
     private int line;
     private int colNo;
@@ -50,30 +48,6 @@ public class ResultShoppingGoods {
 
     public void setFailCount(int failCount) {
         this.failCount = failCount;
-    }
-
-    @Override
-    public boolean equals(Object lo) {
-        if (this == lo) return true;
-        if (lo == null || getClass() != lo.getClass()) return false;
-        ResultShoppingGoods lthat = (ResultShoppingGoods) lo;
-        if (line == 0) {
-            if (lthat.line != 0)
-                return false;
-        } else if (line != lthat.line)
-            return false;
-        if (colNo == 0) {
-            return lthat.colNo == 0;
-        } else return colNo == lthat.colNo;
-    }
-
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ((line == 0) ? 0 : Objects.hashCode(line));
-        result = prime * result + ((colNo == 0) ? 0 : Objects.hashCode(colNo));
-        return result;
     }
 
     @NonNull

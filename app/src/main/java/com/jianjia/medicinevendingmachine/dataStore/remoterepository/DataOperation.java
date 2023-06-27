@@ -18,7 +18,7 @@ import java.nio.ByteOrder;
  * 协议规则
  */
 public class DataOperation {
-    private static String TAG = "DataOperation";
+    private static final String TAG = "DataOperation";
     /**
      * 设备类型
      */

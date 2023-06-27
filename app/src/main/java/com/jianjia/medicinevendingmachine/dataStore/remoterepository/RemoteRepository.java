@@ -58,11 +58,10 @@ public class RemoteRepository {
     }
 
     public void signIn() {
-        XLog.tag(TAG).i("设备签到：" + NetUtils.getMacAddress() + " " + AppUtils.getAppVersionName(context));
+        XLog.tag(TAG).i("设备签到：" + NetUtils.getMacAddress() + " 程序版本：" + AppUtils.getAppVersionName(context));
         if (socketNet != null) {
             socketNet.sendData(CMD_CODE_SYN_TIME, new String[]{String.format("%-10s", "SYNCTIME"), String.format("%-10s", "TSFSERVER")});
             socketNet.sendData(CMD_CODE_SIGN_IN, new String[]{String.format("%-20s", NetUtils.getMacAddress()),
-//            socketNet.sendData(CMD_CODE_SIGN_IN, new String[]{String.format("%-20s","08:fb:ea:00:21:de"),
                     String.format("%-8s", AppUtils.getAppVersionName(context))
             });
         }

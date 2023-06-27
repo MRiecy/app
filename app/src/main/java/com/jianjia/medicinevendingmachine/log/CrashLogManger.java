@@ -13,8 +13,8 @@ import xcrash.ICrashCallback;
 import xcrash.XCrash;
 
 public class CrashLogManger {
-    private String TAG = "CrashLogManger";
-    Context context;
+    private final String TAG = "CrashLogManger";
+    private final Context context;
 
     @Inject
     public CrashLogManger(@ApplicationContext Context context) {

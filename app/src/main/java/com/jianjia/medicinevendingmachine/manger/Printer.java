@@ -22,11 +22,11 @@ public class Printer {
     public Printer(@ApplicationContext Context context) {
         Log.i(TAG, "初始化");
         this.mContext = context;
-        mPrinterAPI = PrinterAPI.getInstance();
     }
 
     public void init() {
         XLog.tag(TAG).i("打印机初始化");
+        mPrinterAPI = PrinterAPI.getInstance();
         if (mPrinterAPI.connect(new USBAPI(mContext)) == PrinterAPI.SUCCESS) {
             XLog.tag(TAG).i("连接设备");
         } else {
@@ -40,7 +40,10 @@ public class Printer {
     }
 
     public boolean isConnect() {
-        return mPrinterAPI.isConnect();
+        if (mPrinterAPI != null) {
+            return mPrinterAPI.isConnect();
+        }
+        return false;
     }
 
     public void printString(String content) {

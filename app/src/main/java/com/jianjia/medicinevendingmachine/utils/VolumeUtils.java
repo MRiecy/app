@@ -8,7 +8,7 @@ import android.media.AudioManager;
 import com.elvishew.xlog.XLog;
 
 public class VolumeUtils {
-    private String TAG = "VolumeUtils";
+    private final String TAG = "VolumeUtils";
     private final AudioManager mAudioManager;
     private static VolumeUtils mVolumeUtils;
 

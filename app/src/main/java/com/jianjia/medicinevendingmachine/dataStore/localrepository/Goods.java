@@ -3,7 +3,6 @@ package com.jianjia.medicinevendingmachine.dataStore.localrepository;
 import androidx.annotation.NonNull;
 import androidx.room.Entity;
 import androidx.room.Ignore;
-
 @Entity(tableName = "goods", primaryKeys = {"iR", "iC"})
 public class Goods implements Comparable<Goods>{
     private int iR;

@@ -7,7 +7,6 @@ import com.elvishew.xlog.XLog;
 import com.jianjia.medicinevendingmachine.dataStore.remoterepository.PrintInfo;
 import com.tim.serialportlib.OnDataListener;
 import com.tim.serialportlib.OnReportListener;
-import com.ys.rkapi.MyManager;
 
 import java.util.List;
 
@@ -35,16 +34,13 @@ public class DeviceManger {
     }
 
     public void init() {
-        deviceSystemManger.init(new MyManager.ServiceConnectedInterface() {
-            @Override
-            public void onConnect() {
-                XLog.tag(TAG).i("系统服务连接成功");
-                isInit = true;
-                deviceSystemManger.hideNavBar(true);
-                deviceSystemManger.hideStatusBar(false);
-                deviceSystemManger.daemon(context.getPackageName(), 0);
-                deviceSystemManger.selfStart(context.getPackageName());
-            }
+        deviceSystemManger.init(() -> {
+            XLog.tag(TAG).i("系统服务连接成功");
+            isInit = true;
+            deviceSystemManger.hideNavBar(true);
+            deviceSystemManger.hideStatusBar(false);
+            deviceSystemManger.daemon(context.getPackageName(), 0);
+            deviceSystemManger.selfStart(context.getPackageName());
         });
         device.init(context);
         printer.init();
@@ -155,16 +151,18 @@ public class DeviceManger {
         device.addListener(onDataListener);
     }
 
-    public void printTicks(List<PrintInfo> printInfoList) {
+    public int printTicks(List<PrintInfo> printInfoList) {
         if (printer.isConnect()) {
             XLog.tag(TAG).i("打印机连接");
             int status = printer.getStatus();
             if ((status & 0x400) > 0 || (status & 0x08) > 0) {
                 XLog.tag(TAG).i("缺纸 ");
+                return DeviceConstants.PRINTER_STATE_NO_PAPER;
             } else if (status == -1) {
                 XLog.tag(TAG).i("打印机数据故障");
             } else if ((status & 0x4) > 0) {
                 XLog.tag(TAG).i("打印机故障");
+                return DeviceConstants.PRINTER_STAT_ERROR;
             } else {
                 for (PrintInfo printInfo : printInfoList) {
                     int type = printInfo.getType();
@@ -212,7 +210,9 @@ public class DeviceManger {
             }
         } else {
             XLog.tag(TAG).i("打印机未连接");
+            return DeviceConstants.PRINTER_STATE_DISCONNECT;
         }
+        return 0;
     }
 
     public void addScanListener() {

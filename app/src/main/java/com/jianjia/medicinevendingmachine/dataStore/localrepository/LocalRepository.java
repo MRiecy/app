@@ -1,22 +1,25 @@
 package com.jianjia.medicinevendingmachine.dataStore.localrepository;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
-import android.os.AsyncTask;
 import android.util.Log;
 
-import androidx.lifecycle.LiveData;
+import com.elvishew.xlog.XLog;
 
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
 import dagger.hilt.android.qualifiers.ApplicationContext;
+import io.reactivex.rxjava3.annotations.NonNull;
+import io.reactivex.rxjava3.core.CompletableObserver;
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.disposables.Disposable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 
 public class LocalRepository {
     private final DeviceDao mDeviceDao;
-    private String TAG = "LocalRepository";
-
+    private final String TAG = "LocalRepository";
 
     @Inject
     public LocalRepository(@ApplicationContext Context context) {
@@ -24,174 +27,166 @@ public class LocalRepository {
         mDeviceDao = DeviceDataBase.getInstance(context).getDeviceDao();
     }
 
+
     public void addGoods(Goods... goods) {
-        new addGoodsTask().execute(goods);
+        mDeviceDao.addGoods(goods).observeOn(Schedulers.io()).subscribeOn(Schedulers.io()).subscribe(new CompletableObserver() {
+            @Override
+            public void onSubscribe(@NonNull Disposable d) {
+
+            }
+
+            @Override
+            public void onComplete() {
+                XLog.tag(TAG).i("存储Goods数据成功");
+            }
+
+            @Override
+            public void onError(@NonNull Throwable e) {
+                XLog.tag(TAG).i("存储Goods数据失败:" + e.getMessage());
+            }
+        });
     }
 
+    @SuppressLint("CheckResult")
     public void deleteGoods() {
-        new deleteAllGoodsTask().execute();
+        mDeviceDao.clearGoods().observeOn(Schedulers.io()).subscribeOn(Schedulers.io()).subscribe(new CompletableObserver() {
+            @Override
+            public void onSubscribe(@NonNull Disposable d) {
+
+            }
+
+            @Override
+            public void onComplete() {
+                XLog.tag(TAG).i("删除Goods数据成功");
+            }
+
+            @Override
+            public void onError(@NonNull Throwable e) {
+                XLog.tag(TAG).i("删除Goods数据成功：" + e.getMessage());
+            }
+        });
     }
 
     public Goods getGoods(int ir, int ic) {
-        try {
-            return new getGoodsTask().execute(ir, ic).get();
-        } catch (ExecutionException | InterruptedException e) {
-            e.printStackTrace();
-            return null;
-        }
+        return mDeviceDao.getGoods(ir, ic).subscribeOn(Schedulers.io()).observeOn(Schedulers.io()).blockingGet();
     }
 
     public List<Goods> getAllGoods() {
-        try {
-            return new getAllGoodsTask().execute().get();
-        } catch (ExecutionException | InterruptedException e) {
-            e.printStackTrace();
-            return null;
-        }
+        return mDeviceDao.getAllGoods().subscribeOn(Schedulers.io()).observeOn(Schedulers.io()).blockingGet();
     }
 
     public void updateAndInsertAdvertMould(AdvertMould... advertMoulds) {
-        //XLog.tag(TAG).i("更新数据");
-        new UpdateAdvertMouldTask().execute(advertMoulds);
+        mDeviceDao.addAdvertMould(advertMoulds).observeOn(Schedulers.io()).subscribeOn(Schedulers.io()).subscribe(new CompletableObserver() {
+            @Override
+            public void onSubscribe(@NonNull Disposable d) {
+
+            }
+
+            @Override
+            public void onComplete() {
+                XLog.tag(TAG).i("添加AdvertMould数据成功");
+            }
+
+            @Override
+            public void onError(@NonNull Throwable e) {
+                XLog.tag(TAG).i("添加AdvertMould数据失败：" + e.getMessage());
+            }
+        });
     }
 
     public void updateAndInsertAdvertContent(AdvertContent... advertContents) {
-        // XLog.tag(TAG).i("更新数据");
-        new UpdateAdvertContentTask().execute(advertContents);
+        mDeviceDao.addAdvertContent(advertContents).observeOn(Schedulers.io()).subscribeOn(Schedulers.io()).subscribe(new CompletableObserver() {
+            @Override
+            public void onSubscribe(@NonNull Disposable d) {
+
+            }
+
+            @Override
+            public void onComplete() {
+                XLog.tag(TAG).i("添加AdvertContent数据成功");
+            }
+
+            @Override
+            public void onError(@NonNull Throwable e) {
+                XLog.tag(TAG).i("添加AdvertContent数据失败：" + e.getMessage());
+            }
+        });
     }
 
     public AdvertMould getAdvertMould() {
-        try {
-            return new getAdvertMouldTask().execute().get();
-        } catch (ExecutionException | InterruptedException e) {
-            e.printStackTrace();
-            return null;
-        }
+        return mDeviceDao.getAdvertMould().subscribeOn(Schedulers.io()).observeOn(Schedulers.io()).blockingGet();
     }
 
     public AdvertContent getAdvertContent() {
-        try {
-            return new getAdvertContentTask().execute().get();
-        } catch (ExecutionException | InterruptedException e) {
-            e.printStackTrace();
-            return null;
-        }
+        return mDeviceDao.getAdvertContent().subscribeOn(Schedulers.io()).observeOn(Schedulers.io()).blockingGet();
     }
 
     public void addResultShopping(ResultShopping... resultShopping) {
-        new addResultShoppingTask().execute(resultShopping);
+        mDeviceDao.addResultShopping(resultShopping).observeOn(Schedulers.io()).subscribeOn(Schedulers.io()).subscribe(new CompletableObserver() {
+            @Override
+            public void onSubscribe(@NonNull Disposable d) {
+
+            }
+
+            @Override
+            public void onComplete() {
+                XLog.tag(TAG).i("添加ResultShopping数据成功");
+            }
+
+            @Override
+            public void onError(@NonNull Throwable e) {
+                XLog.tag(TAG).i("添加ResultShopping数据失败：" + e.getMessage());
+            }
+        });
     }
 
     public ResultShopping getResultShopping() {
-        try {
-            return new getResultShoppingTask().execute().get();
-        } catch (ExecutionException | InterruptedException e) {
-            e.printStackTrace();
-            return null;
-        }
+        return mDeviceDao.getResultShopping().subscribeOn(Schedulers.io()).observeOn(Schedulers.io()).blockingGet();
     }
 
     public void deleteResultShopping() {
-        new deleteResultShoppingTask().execute();
+        mDeviceDao.clearResultShopping().observeOn(Schedulers.io()).subscribeOn(Schedulers.io()).subscribe(new CompletableObserver() {
+            @Override
+            public void onSubscribe(@NonNull Disposable d) {
+
+            }
+
+            @Override
+            public void onComplete() {
+                XLog.tag(TAG).i("删除ResultShopping所有数据成功");
+            }
+
+            @Override
+            public void onError(@NonNull Throwable e) {
+                XLog.tag(TAG).i("删除ResultShopping数据失败：" + e.getMessage());
+            }
+        });
     }
 
-    public LiveData<AdvertMould> getAdvertMouldByLiveData() {
-        try {
-            return new getAdvertMouldByLiveDataTask().execute().get();
-        } catch (ExecutionException | InterruptedException e) {
-            e.printStackTrace();
-            return null;
-        }
+    public Flowable<AdvertMould> getAdvertMouldByLiveData() {
+        return mDeviceDao.getAdvertMouldByLiveData().subscribeOn(Schedulers.io()).observeOn(Schedulers.io());
     }
 
-    private class addGoodsTask extends AsyncTask<Goods, Void, Void> {
-        @Override
-        protected Void doInBackground(Goods... goods) {
-            mDeviceDao.addGoods(goods);
-            return null;
-        }
+    public SystemRebootTimes getSystemRebootTimes() {
+        return mDeviceDao.getSystemRebootTimes().subscribeOn(Schedulers.io()).observeOn(Schedulers.io()).blockingGet();
     }
 
-    private class getGoodsTask extends AsyncTask<Integer, Void, Goods> {
-        @Override
-        protected Goods doInBackground(Integer... integers) {
-            return mDeviceDao.queryGoods(integers[0], integers[1]);
-        }
-    }
+    public void updateAndInsertSystemRebootTimes(SystemRebootTimes... systemRebootTimes) {
+        mDeviceDao.addSystemRebootTimes(systemRebootTimes).observeOn(Schedulers.io()).subscribeOn(Schedulers.io()).subscribe(new CompletableObserver() {
+            @Override
+            public void onSubscribe(@NonNull Disposable d) {
 
-    private class getAllGoodsTask extends AsyncTask<Void, Void, List<Goods>> {
-        @Override
-        protected List<Goods> doInBackground(Void... args0) {
-            return mDeviceDao.queryAllGoods();
-        }
-    }
+            }
 
-    private class deleteAllGoodsTask extends AsyncTask<Void, Void, Void> {
-        @Override
-        protected Void doInBackground(Void... args0) {
-            mDeviceDao.clearGoods();
-            return null;
-        }
-    }
+            @Override
+            public void onComplete() {
+                XLog.tag(TAG).i("添加SystemRebootTimes数据成功");
+            }
 
-    private class UpdateAdvertMouldTask extends AsyncTask<AdvertMould, Void, Void> {
-        @Override
-        protected Void doInBackground(AdvertMould... advertMoulds) {
-            mDeviceDao.addAdvertMould(advertMoulds);
-            return null;
-        }
+            @Override
+            public void onError(@NonNull Throwable e) {
+                XLog.tag(TAG).i("添加SystemRebootTimes数据失败：" + e.getMessage());
+            }
+        });
     }
-
-    private class UpdateAdvertContentTask extends AsyncTask<AdvertContent, Void, Void> {
-        @Override
-        protected Void doInBackground(AdvertContent... advertContents) {
-            mDeviceDao.addAdvertContent(advertContents);
-            return null;
-        }
-    }
-
-    private class getAdvertMouldTask extends AsyncTask<Void, Void, AdvertMould> {
-        @Override
-        protected AdvertMould doInBackground(Void... voids) {
-            return mDeviceDao.getAdvertMould();
-        }
-    }
-
-    private class getAdvertContentTask extends AsyncTask<Void, Void, AdvertContent> {
-        @Override
-        protected AdvertContent doInBackground(Void... voids) {
-            return mDeviceDao.getAdvertContent();
-        }
-    }
-
-    private class getAdvertMouldByLiveDataTask extends AsyncTask<Void, Void, LiveData<AdvertMould>> {
-        @Override
-        protected LiveData<AdvertMould> doInBackground(Void... voids) {
-            return mDeviceDao.getAdvertMouldByLiveData();
-        }
-    }
-
-    private class addResultShoppingTask extends AsyncTask<ResultShopping, Void, Void> {
-        @Override
-        protected Void doInBackground(ResultShopping... resultShopping) {
-            mDeviceDao.addResultShopping(resultShopping);
-            return null;
-        }
-    }
-
-    private class getResultShoppingTask extends AsyncTask<Void, Void, ResultShopping> {
-        @Override
-        protected ResultShopping doInBackground(Void... voids) {
-            return mDeviceDao.getResultShopping();
-        }
-    }
-
-    private class deleteResultShoppingTask extends AsyncTask<Void, Void, Void> {
-        @Override
-        protected Void doInBackground(Void... args0) {
-            mDeviceDao.clearResultShopping();
-            return null;
-        }
-    }
-
 }

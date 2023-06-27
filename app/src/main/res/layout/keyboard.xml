@@ -1,33 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
 <GridLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/gl_keyboard"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:layout_gravity="center"
-    android:layout_margin="10dp"
     android:columnCount="4"
-    android:rowCount="6"
+    android:rowCount="8"
+    android:visibility="gone"
     >
+
+    <TextView
+        android:id="@+id/tv_back"
+        android:layout_columnSpan="2"
+        android:layout_columnWeight="1"
+        android:layout_gravity="start"
+        android:text="返回"
+        android:textColor="@color/white"
+        android:textSize="30sp"
+        app:drawableStartCompat="@drawable/arrow_back"
+        />
+
+    <TextView
+        android:id="@+id/tv_back_time"
+        android:layout_columnSpan="2"
+        android:layout_columnWeight="1"
+        android:layout_gravity="end"
+        android:textColor="@color/white"
+        android:textSize="30sp"
+        android:drawableStart="@drawable/access_time"
+        android:drawablePadding="5dp"
+        />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_columnSpan="4"
         android:layout_columnWeight="2"
+        android:layout_marginTop="50dp"
         android:gravity="center"
         android:text="请  输  入  取  货  码 "
         android:textColor="@color/white"
-        android:textSize="30sp"
+        android:textSize="40sp"
         android:textStyle="bold"
         />
+
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_columnSpan="4"
         android:layout_columnWeight="2"
-        android:gravity="center"
         android:layout_marginTop="5dp"
+        android:gravity="center"
         android:text="骑手请输入订单后六位"
         android:textColor="@color/white"
         android:textSize="25sp"
@@ -40,7 +64,7 @@
         android:layout_height="wrap_content"
         android:layout_columnSpan="4"
         android:layout_columnWeight="2"
-        android:layout_marginTop="5dp"
+        android:layout_marginTop="10dp"
         android:background="@color/white"
         android:gravity="center"
         android:maxLength="6"
@@ -57,7 +81,7 @@
         android:background="@drawable/button_background"
         android:padding="15dp"
         android:text="1"
-        android:textColor="@color/black"
+        android:textColor="@color/text_blue"
         android:textSize="40sp"
         />
 
@@ -69,7 +93,7 @@
         android:background="@drawable/button_background"
         android:padding="15dp"
         android:text="2"
-        android:textColor="@color/black"
+        android:textColor="@color/text_blue"
         android:textSize="40sp"
         />
 
@@ -81,7 +105,7 @@
         android:background="@drawable/button_background"
         android:padding="15dp"
         android:text="3"
-        android:textColor="@color/black"
+        android:textColor="@color/text_blue"
         android:textSize="40sp"
         />
 
@@ -92,7 +116,7 @@
         android:background="@drawable/button_background"
         android:padding="15dp"
         android:text="4"
-        android:textColor="@color/black"
+        android:textColor="@color/text_blue"
         android:textSize="40sp"
         />
 
@@ -104,7 +128,7 @@
         android:background="@drawable/button_background"
         android:padding="15dp"
         android:text="5"
-        android:textColor="@color/black"
+        android:textColor="@color/text_blue"
         android:textSize="40sp"
         />
 
@@ -116,7 +140,7 @@
         android:background="@drawable/button_background"
         android:padding="15dp"
         android:text="6"
-        android:textColor="@color/black"
+        android:textColor="@color/text_blue"
         android:textSize="40sp"
         />
 
@@ -128,7 +152,7 @@
         android:background="@drawable/button_background"
         android:padding="15dp"
         android:text="7"
-        android:textColor="@color/black"
+        android:textColor="@color/text_blue"
         android:textSize="40sp"
         />
 
@@ -139,7 +163,7 @@
         android:background="@drawable/button_background"
         android:padding="15dp"
         android:text="8"
-        android:textColor="@color/black"
+        android:textColor="@color/text_blue"
         android:textSize="40sp"
         />
 
@@ -151,7 +175,7 @@
         android:background="@drawable/button_background"
         android:padding="15dp"
         android:text="9"
-        android:textColor="@color/black"
+        android:textColor="@color/text_blue"
         android:textSize="40sp"
         />
 
@@ -163,7 +187,7 @@
         android:background="@drawable/button_background"
         android:padding="15dp"
         android:text="0"
-        android:textColor="@color/black"
+        android:textColor="@color/text_blue"
         android:textSize="40sp"
         />
 
@@ -175,7 +199,7 @@
         android:background="@drawable/button_background"
         android:padding="15dp"
         android:text="删除"
-        android:textColor="@color/black"
+        android:textColor="@color/text_blue"
         android:textSize="40sp"
         />
 
@@ -188,7 +212,7 @@
         android:background="@drawable/button_background"
         android:padding="15dp"
         android:text="确认"
-        android:textColor="@color/black"
+        android:textColor="@color/text_blue"
         android:textSize="40sp"
         />
 </GridLayout>

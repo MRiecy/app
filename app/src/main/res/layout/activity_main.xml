@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#0186D1"
     tools:context=".ui.MainActivity"
+    android:orientation="horizontal"
+    android:baselineAligned="false"
     >
 
     <LinearLayout
@@ -28,6 +29,7 @@
             android:layout_height="match_parent"
             android:gravity="center"
             android:orientation="vertical"
+            android:visibility="gone"
             >
 
             <ImageView
@@ -50,8 +52,6 @@
         <include
             android:id="@id/in_keyboard"
             layout="@layout/keyboard"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
             />
     </LinearLayout>
 
@@ -59,16 +59,15 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginBottom="40dp"
+        android:layout_marginTop="40dp"
         android:layout_weight="1"
-        android:orientation="vertical"
         >
 
         <ImageView
-            android:id="@+id/iv_logo1"
+            android:id="@+id/iv_logo"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerHorizontal="true"
-            android:layout_marginTop="40dp"
             android:src="@mipmap/title_logo"
             />
 
@@ -76,10 +75,10 @@
             android:id="@+id/tc_time"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/iv_logo1"
+            android:layout_below="@id/iv_logo"
             android:layout_centerHorizontal="true"
-            android:layout_marginTop="10dp"
-            android:format24Hour="yyyy-MM-dd  HH:mm:ss"
+            android:layout_marginTop="5dp"
+            android:format24Hour="yyyy-MM-dd     HH:mm:ss"
             android:textColor="@color/white"
             android:textSize="28sp"
             android:textStyle="bold"
@@ -93,7 +92,7 @@
             android:layout_centerHorizontal="true"
             android:layout_marginTop="5dp"
             android:textColor="@color/white"
-            android:textSize="27sp"
+            android:textSize="28sp"
             android:textStyle="bold"
             />
 
@@ -103,9 +102,9 @@
             android:layout_height="wrap_content"
             android:layout_below="@id/tv_device_info"
             android:layout_centerHorizontal="true"
-            android:layout_marginTop="5dp"
+            android:layout_marginTop="10dp"
             android:textColor="@color/white"
-            android:textSize="25sp"
+            android:textSize="28sp"
             android:textStyle="bold"
             />
 
@@ -130,7 +129,7 @@
                 android:layout_marginTop="5dp"
                 android:text="扫  码  购  药"
                 android:textColor="@color/white"
-                android:textSize="24sp"
+                android:textSize="30sp"
                 android:textStyle="bold"
                 android:visibility="gone"
                 />
@@ -144,12 +143,15 @@
             android:layout_centerHorizontal="true"
             android:layout_marginBottom="150dp"
             android:background="@drawable/button_background"
-            android:paddingStart="20dp"
-            android:paddingEnd="20dp"
-            android:text="我要取药"
+            android:paddingStart="50dp"
+            android:paddingTop="20dp"
+            android:paddingEnd="50dp"
+            android:paddingBottom="20dp"
+            android:text="我 要 取 药"
             android:textColor="#2196F3"
-            android:textSize="30sp"
+            android:textSize="28sp"
             android:textStyle="bold"
+            android:visibility="gone"
             />
 
         <TextView
@@ -159,9 +161,9 @@
             android:layout_alignParentBottom="true"
             android:layout_centerHorizontal="true"
             android:gravity="center"
-            android:text="服务热线 186 940 520 32"
+            android:text="服务热线 1858 0629 790"
             android:textColor="@color/white"
-            android:textSize="24sp"
+            android:textSize="28sp"
             android:textStyle="bold"
             />
     </RelativeLayout>

@@ -37,7 +37,6 @@ public class SocketNet {
         OkSocketOptions lOkSocketOptions = new OkSocketOptions.Builder()
                 .setPulseFrequency(10 * 1000)//心跳发送间隔时间
                 .setPulseFeedLoseTimes(5)//心跳最大丢失次数
-                .setConnectTimeoutSecond(10)
                 .setIOThreadMode(OkSocketOptions.IOThreadMode.DUPLEX)
                 .setReaderProtocol(new IReaderProtocol() {
                     @Override
@@ -67,14 +66,15 @@ public class SocketNet {
         return this;
     }
 
-    @NonNull
-    public SocketNet connect() {
+    public void connect() {
         if (manager != null) {
+            if (manager.isConnect()) {
+                manager.disconnect();
+            }
             manager.connect();
         } else {
             XLog.tag(TAG).i("manger为空");
         }
-        return this;
     }
 
     /***
@@ -83,7 +83,7 @@ public class SocketNet {
      * @param content 数据内容
      */
     public void sendData(byte[] cmdCode, String[] content) {
-        if (manager != null) {
+        if (manager != null && manager.isConnect()) {
             manager.send(new Data(cmdCode, content));
         }
     }
@@ -93,7 +93,7 @@ public class SocketNet {
      * @param cmdCode 命令码
      */
     public void sendData(byte[] cmdCode) {
-        if (manager != null) {
+        if (manager != null && manager.isConnect()) {
             manager.send(new Data(cmdCode));
         }
     }
@@ -102,7 +102,7 @@ public class SocketNet {
      * 开启心跳
      */
     public void startHeartbeat() {
-        if (manager != null) {
+        if (manager != null && manager.isConnect()) {
             manager.getPulseManager()
                     .setPulseSendable((IPulseSendable) () -> DataOperation.GetSocketSendData(SocketCmdCode.CMD_CODE_HEARTBEAT))//只需要设置一次,下一次可以直接调用pulse()
                     .pulse();//开始心跳,开始心跳后,心跳管理器会自动进行心跳触发
@@ -113,7 +113,7 @@ public class SocketNet {
      * 开启心跳
      */
     public void triggerHeartbeat() {
-        if (manager != null) {
+        if (manager != null && manager.isConnect()) {
             manager.getPulseManager()
                     .setPulseSendable((IPulseSendable) () -> DataOperation.GetSocketSendData(SocketCmdCode.CMD_CODE_HEARTBEAT))//只需要设置一次,下一次可以直接调用pulse()
                     .trigger();//心跳管理器触发一次心跳

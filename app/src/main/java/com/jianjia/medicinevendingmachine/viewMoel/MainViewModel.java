@@ -1,12 +1,12 @@
 package com.jianjia.medicinevendingmachine.viewMoel;
 
 import android.app.Application;
+import android.os.Handler;
+import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
-import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.Observer;
 import androidx.work.Data;
 import androidx.work.WorkInfo;
 
@@ -15,8 +15,8 @@ import com.jianjia.medicinevendingmachine.constants.NetworkConfiguration;
 import com.jianjia.medicinevendingmachine.dataStore.Repository;
 import com.jianjia.medicinevendingmachine.dataStore.localrepository.AdvertContent;
 import com.jianjia.medicinevendingmachine.dataStore.localrepository.AdvertMould;
-import com.jianjia.medicinevendingmachine.dataStore.localrepository.LocalRepository;
 import com.jianjia.medicinevendingmachine.ui.MainActivity;
+import com.jianjia.medicinevendingmachine.utils.ThreadPoolUtils;
 import com.jianjia.medicinevendingmachine.work.NetWork;
 import com.jianjia.medicinevendingmachine.work.WorkProcessing;
 
@@ -26,20 +26,19 @@ import dagger.hilt.android.lifecycle.HiltViewModel;
 
 @HiltViewModel
 public class MainViewModel extends AndroidViewModel {
-    private String TAG = "MainViewModel";
+    private final String TAG = "MainViewModel";
     private final MutableLiveData<Integer> deviceState = new MutableLiveData<>();
     private final MutableLiveData<String> tempAndHumValue = new MutableLiveData<>();
     private final MutableLiveData<String> deviceNoValue = new MutableLiveData<>();
-    private MutableLiveData<String> qrPath = new MutableLiveData<>();
+    private final MutableLiveData<String> qrPath = new MutableLiveData<>();
+    private final MutableLiveData<AdvertMould> mAdvertMouldMutableLiveData = new MutableLiveData<>();
     Repository mRepository;
-    LocalRepository mLocalRepository;
     WorkProcessing mWorkProcessing;
 
     @Inject
-    public MainViewModel(@NonNull Application application, Repository repository, LocalRepository localRepository, WorkProcessing workProcessing) {
+    public MainViewModel(@NonNull Application application, Repository repository, WorkProcessing workProcessing) {
         super(application);
         this.mRepository = repository;
-        this.mLocalRepository = localRepository;
         this.mWorkProcessing = workProcessing;
     }
 
@@ -59,39 +58,39 @@ public class MainViewModel extends AndroidViewModel {
         return qrPath;
     }
 
-    public LiveData<AdvertMould> getAdvertMould() {
-        return mLocalRepository.getAdvertMouldByLiveData();
+    public MutableLiveData<AdvertMould> getAdvertMouldByLiveData() {
+        return mAdvertMouldMutableLiveData;
     }
 
     public AdvertContent getAdvertContent() {
-        return mLocalRepository.getAdvertContent();
-    }
-
-    public AdvertMould getAdvertMouldNoLive() {
-        return mLocalRepository.getAdvertMould();
+        return mRepository.getAdvertContent();
     }
 
     public void outGoods(String outCode) {
         mRepository.outGoods(outCode);
     }
 
-    public void init(MainActivity activity) {
+    public void initRepositoryData() {
         mRepository.startLog();
+        mRepository.initViewModelData(deviceState, tempAndHumValue, deviceNoValue, qrPath, mAdvertMouldMutableLiveData);
+        mRepository.initDevice();
+    }
+
+    public void initNet(MainActivity activity) {
         Data domainNameData = new Data.Builder().putString("domainName", NetworkConfiguration.URL).build();
         mWorkProcessing.doOneTimeWork(domainNameData, NetWork.class);
-        mWorkProcessing.doOneTimeWorkCallBack(activity, new Observer<WorkInfo>() {
-            @Override
-            public void onChanged(WorkInfo workInfo) {
-                if (workInfo != null && workInfo.getState() == WorkInfo.State.SUCCEEDED) {
-                    XLog.tag(TAG).i("线程" + Thread.currentThread());
-                    String hostAddress = workInfo.getOutputData().getString("hostAddress");
-                    XLog.tag(TAG).i("中转平台IP地址为：" + hostAddress + " " + NetworkConfiguration.PORT);
-                    if (hostAddress != null) {
-                        new Thread(() -> mRepository.init(hostAddress,deviceState,tempAndHumValue,deviceNoValue,qrPath)).start();
-                    }
+        new Handler(Looper.getMainLooper()).post(() -> mWorkProcessing.doOneTimeWorkCallBack(activity, workInfo -> {
+            if (workInfo != null && workInfo.getState() == WorkInfo.State.SUCCEEDED) {
+                String hostAddress = workInfo.getOutputData().getString("hostAddress");
+                XLog.tag(TAG).i("中转平台IP地址为：" + hostAddress + " " + NetworkConfiguration.PORT);
+                if (hostAddress != null && !"".equals(hostAddress)) {
+                    ThreadPoolUtils.getInstance().doThings(() -> {
+                        XLog.tag(TAG).i("初始化设备");
+                        mRepository.initSocket(hostAddress);
+                    });
                 }
             }
-        });
+        }));
     }
 
     @Override

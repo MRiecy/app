@@ -20,9 +20,13 @@ public class AndroidSerialPort {
     }
 
     public void init(String port, int baudRate) {
-        mSerialPortManager = new SerialPortManager();
-        XLog.tag(TAG).i("打开串口：" + port + "," + baudRate);
-        mSerialPortManager.open(port, baudRate);
+        try {
+            mSerialPortManager = new SerialPortManager();
+            XLog.tag(TAG).i("打开串口：" + port + "," + baudRate);
+            mSerialPortManager.open(port, baudRate);
+        } catch (Exception e) {
+            XLog.tag(TAG).i(e.getMessage());
+        }
     }
 
     public void sendCmd(byte[] cmd) {

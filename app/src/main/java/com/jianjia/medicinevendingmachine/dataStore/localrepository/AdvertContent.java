@@ -2,7 +2,6 @@ package com.jianjia.medicinevendingmachine.dataStore.localrepository;
 
 import androidx.annotation.NonNull;
 import androidx.room.Entity;
-import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
 @Entity
@@ -10,10 +9,6 @@ public class AdvertContent {
     @PrimaryKey
     private int id;
     private String content;
-
-    @Ignore
-    public AdvertContent() {
-    }
 
     public AdvertContent(int id, String content) {
         this.id = id;

@@ -2,6 +2,7 @@ package com.jianjia.medicinevendingmachine.work;
 
 import static com.jianjia.medicinevendingmachine.utils.BytesUtils.SubAndBase64Decode;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 
 import androidx.annotation.NonNull;
@@ -28,8 +29,8 @@ import dagger.assisted.AssistedInject;
 
 @HiltWorker
 public class LogWork extends Worker {
-    private String TAG = "LogWork";
-    private HttpUtils mHttpUtils;
+    private final String TAG = "LogWork";
+    private final HttpUtils mHttpUtils;
 
     @AssistedInject
     public LogWork(@Assisted @NonNull Context context, @Assisted @NonNull WorkerParameters workerParams, HttpUtils httpUtils) {
@@ -39,6 +40,7 @@ public class LogWork extends Worker {
 
     @NonNull
     @Override
+    @SuppressLint("DefaultLocale")
     public Result doWork() {
         Calendar calendar = Calendar.getInstance();
         int year = calendar.get(Calendar.YEAR);

@@ -51,6 +51,7 @@ import com.jianjia.medicinevendingmachine.dataStore.localrepository.DeviceBean;
 import com.jianjia.medicinevendingmachine.dataStore.localrepository.Goods;
 import com.jianjia.medicinevendingmachine.dataStore.localrepository.LocalRepository;
 import com.jianjia.medicinevendingmachine.dataStore.localrepository.ResultShopping;
+import com.jianjia.medicinevendingmachine.dataStore.localrepository.SystemRebootTimes;
 import com.jianjia.medicinevendingmachine.dataStore.remoterepository.DataOperation;
 import com.jianjia.medicinevendingmachine.dataStore.remoterepository.PrintInfo;
 import com.jianjia.medicinevendingmachine.dataStore.remoterepository.RemoteRepository;
@@ -90,29 +91,21 @@ import dagger.hilt.android.qualifiers.ApplicationContext;
 
 public class Repository {
     private final String TAG = "Repository";
-    private LocalRepository localRepository;
-    private DeviceManger deviceManger;
-    private RemoteRepository remoteRepository;
-    private int deviceState = DeviceStateConstant.DEVICE_NORMAL;
-    private int outNo = 0;
-    private int failCount = 0;
-    private int orderState = 0;
-    Context context;
-    private String deviceNO;
-
-    private int packageNo = 1;
+    private final LocalRepository localRepository;
+    private final DeviceManger deviceManger;
+    private final RemoteRepository remoteRepository;
+    private int deviceState = DeviceStateConstant.DEVICE_NORMAL, outNo = 0, failCount = 0, orderState = 0, packageNo = 1, downLoadCount = 0;
     private final int packageCount = 2;
-    private boolean isOutPackage = false;
-    private int downLoadCount = 0;
+    private final Context context;
+    private String deviceNO;
+    private boolean isOutPackage = false, mIsGetTempAndHum = false;
     private MutableLiveData<Integer> mDeviceState;
-    private MutableLiveData<String> mTempAndHumValue;
-    private MutableLiveData<String> mQrPath;
-    private Timer mOutGoodsTimer;
-    private Timer mOutPackageTimer;
+    private MutableLiveData<String> mTempAndHumValue, mQrPath, mDeviceNo;
+    private MutableLiveData<AdvertMould> mAdvertMouldMutableLiveData;
+    private Timer mOutGoodsTimer, mOutPackageTimer, mSendTimeOutTimer, mGetTempTimer;
 
     @Inject
-
-    public Repository(@ApplicationContext Context context, DeviceManger deviceManger, RemoteRepository remoteRepository, LocalRepository localRepository) {
+    public Repository(@ApplicationContext Context context, LocalRepository localRepository, DeviceManger deviceManger, RemoteRepository remoteRepository) {
         Log.i(TAG, "初始化");
         this.context = context;
         this.localRepository = localRepository;
@@ -120,15 +113,17 @@ public class Repository {
         this.remoteRepository = remoteRepository;
     }
 
-    public void init(String hostAddress, MutableLiveData<Integer> deviceStates, MutableLiveData<String> tempAndHumValue, MutableLiveData<String> deviceNoValue, MutableLiveData<String> qrPath) {
-        this.mDeviceState = deviceStates;
-        this.mTempAndHumValue = tempAndHumValue;
-        this.mQrPath = qrPath;
-        ThreadPoolUtils.getInstance().doThings(() -> deviceManger.init());
+    public void initDevice() {
+        ThreadPoolUtils.getInstance().doThings(deviceManger::init);
+    }
+
+    public void initSocket(String hostAddress) {
         remoteRepository.initSockNet(hostAddress, new SocketActionAdapter() {
             @Override
             public void onSocketIOThreadShutdown(String action, @NonNull Exception e) {
-                XLog.tag(TAG).i("onSocketIOThreadShutdown:" + action + " " + e.getMessage());
+                if (e != null) {
+                    XLog.tag(TAG).i("onSocketIOThreadShutdown:" + action + " " + e.getMessage());
+                }
             }
 
             //连接成功回调
@@ -144,6 +139,29 @@ public class Repository {
             public void onSocketConnectionFailed(ConnectionInfo info, String action, @NonNull Exception e) {
                 super.onSocketConnectionFailed(info, action, e);
                 XLog.tag(TAG).i("onSocketConnectionFailed:" + action + " " + e.getMessage());
+                if (e.getMessage() != null && e.getMessage().contains("Network is unreachable") && deviceState == DeviceStateConstant.DEVICE_NORMAL) {
+                    mDeviceState.postValue(DeviceStateConstant.DEVICE_NO_NET);
+                    new Timer().schedule(new TimerTask() {
+                        @Override
+                        public void run() {
+                            SystemRebootTimes lSystemRebootTimes = localRepository.getSystemRebootTimes();
+                            if (lSystemRebootTimes == null) {
+                                localRepository.updateAndInsertSystemRebootTimes(new SystemRebootTimes(1, 1));
+                                XLog.tag(TAG).i("初次重启");
+                                deviceManger.reboot();
+                                System.exit(0);
+                            } else {
+                                int lSystemRebootTimes1 = lSystemRebootTimes.getSystemRebootTimes();
+                                if (lSystemRebootTimes1 < 2) {
+                                    XLog.tag(TAG).i("重启:" + lSystemRebootTimes1);
+                                    localRepository.updateAndInsertSystemRebootTimes(new SystemRebootTimes(1, lSystemRebootTimes1 + 1));
+                                    deviceManger.reboot();
+                                    System.exit(0);
+                                }
+                            }
+                        }
+                    }, 15000);
+                }
             }
 
             //连接状态由连接到断开回调
@@ -151,7 +169,9 @@ public class Repository {
             @Override
             public void onSocketDisconnection(ConnectionInfo info, String action, @NonNull Exception e) {
                 super.onSocketDisconnection(info, action, e);
-                XLog.tag(TAG).i("onSocketDisconnection:" + action + " " + e.getMessage());
+                if (e != null) {
+                    XLog.tag(TAG).i("onSocketDisconnection:" + action + " " + e.getMessage());
+                }
             }
 
             //发送心跳后的回调
@@ -197,21 +217,24 @@ public class Repository {
                         case "200":
                             XLog.tag(TAG).i("签到成功");
                             remoteRepository.startHeartbeat();
+                            localRepository.updateAndInsertSystemRebootTimes(new SystemRebootTimes(1, 0));
                             int deviceLen = Integer.parseInt(bodyStr.substring(3, 5));
-                            String lDeviceNo = bodyStr.substring(5, 5 + deviceLen);//设备编号
-                            deviceNO = lDeviceNo;
-                            deviceNoValue.postValue(deviceNO);
+                            deviceNO = bodyStr.substring(5, 5 + deviceLen);//设备编号
+                            mDeviceNo.postValue(deviceNO);
+                            XLog.tag(TAG).i("deviceNo: " + deviceNO);
                             remoteRepository.sendErrorCode(0, 0, 0, (System.currentTimeMillis() / 1000));
-                            XLog.tag(TAG).i("deviceNo: " + lDeviceNo);
+                            mDeviceState.postValue(DeviceStateConstant.DEVICE_NORMAL);
                             String signMessage = SubAndBase64Decode(bodyStr, 5 + deviceLen, 8 + deviceLen);
                             XLog.tag(TAG).i(signMessage);
                             upDataConfig();
                             break;
                         case "-1":
                             XLog.tag(TAG).i("设备未注册,请注册,本设备mac为:\n" + NetUtils.getMacAddress());
+                            mDeviceState.postValue(DeviceStateConstant.DEVICE_UNREGISTERED);
                             break;
                         case "2":
                             XLog.tag(TAG).i("设备绑定失败");
+                            mDeviceState.postValue(DeviceStateConstant.DEVICE_REGISTRATION_FAILED);
                             break;
                     }
                 } else if (Arrays.equals(cCode, CMD_CODE_HEARTBEAT)) {//心跳返回
@@ -226,6 +249,7 @@ public class Repository {
                     getDeviceExtendedInformation();
                 } else if (Arrays.equals(cCode, CMD_CODE_OUT_GOODS)) {//出货
                     XLog.tag(TAG).i("出货信息接收:" + bodyStr);
+                    mSendTimeOutTimer.cancel();
                     String flag = bodyStr.substring(0, 3).trim();
                     String deviceGoodsStr = SubAndBase64Decode(bodyStr, 3, 7);
                     XLog.tag(TAG).i("出货信息：" + deviceGoodsStr);
@@ -239,28 +263,36 @@ public class Repository {
                         ArrayList<ResultShoppingGoods> resultShoppingGoodsList = new ArrayList<>();
                         for (int i = 0; i < lOutCabinet.size(); i++) {
                             JSONObject lO = (JSONObject) lOutCabinet.get(i);
-                            int rowNo = lO.getInteger("line");
-                            int colNo = lO.getInteger("colNo");
-                            int lOutCount = lO.getInteger("outCount");
-                            ResultShoppingGoods resultShoppingGoods = new ResultShoppingGoods();
-                            resultShoppingGoods.setLine(rowNo);
-                            resultShoppingGoods.setColNo(colNo);
-                            resultShoppingGoods.setSuccessCount(0);
-                            resultShoppingGoods.setFailCount(0);
-                            resultShoppingGoodsList.add(resultShoppingGoods);
-                            Goods lGoods = localRepository.getGoods(rowNo, colNo);
-                            if (lGoods != null) {
-                                for (int j = 0; j < lOutCount; j++) {
-                                    lShoppingGoodsList.add(lGoods);
+                            Integer lLine = lO.getInteger("line");
+                            Integer lColNo = lO.getInteger("colNo");
+                            if (lLine != null && lColNo != null) {
+                                int rowNo = lLine;
+                                int colNo = lColNo;
+                                int lOutCount = lO.getInteger("outCount");
+                                ResultShoppingGoods resultShoppingGoods = new ResultShoppingGoods();
+                                resultShoppingGoods.setLine(rowNo);
+                                resultShoppingGoods.setColNo(colNo);
+                                resultShoppingGoods.setSuccessCount(0);
+                                resultShoppingGoods.setFailCount(0);
+                                resultShoppingGoodsList.add(resultShoppingGoods);
+                                Goods lGoods = localRepository.getGoods(rowNo, colNo);
+                                if (lGoods != null) {
+                                    for (int j = 0; j < lOutCount; j++) {
+                                        lShoppingGoodsList.add(lGoods);
+                                    }
+                                } else {
+                                    XLog.tag(TAG).i("订单货道异常,不存在指定货道");
                                 }
                             } else {
-                                XLog.tag(TAG).i("订单货道异常");
+                                XLog.tag(TAG).i("订单货道异常,货道信息为空");
                             }
                         }
                         Collections.sort(lShoppingGoodsList);
                         if (orderNo.equals("888888888888888888") && lShoppingGoodsList.size() == productCount) {
+                            XLog.tag(TAG).i("测试货道出货");
                             shoppingGoods(orderNo, lShoppingGoodsList, resultShoppingGoodsList, false);
                         } else if (lShoppingGoodsList.size() == productCount) {
+                            XLog.tag(TAG).i("正常出货");
                             shoppingGoods(orderNo, lShoppingGoodsList, resultShoppingGoodsList, true);
                         } else {
                             XLog.tag(TAG).i("订单货道异常信息");
@@ -292,8 +324,8 @@ public class Repository {
                     }
                 } else if (Arrays.equals(cCode, CMD_CODE_GET_CONFIG_INFO)) {//获取机柜信息请求
                     XLog.tag(TAG).i("获取机柜信息请求:" + bodyStr);
-                    String flag = bodyStr.substring(0, 1);
-                    if (flag.equals("0")) {
+                    String flag = bodyStr.substring(0, 3);
+                    if (flag.equals("200")) {
                         String deviceConfigStr = SubAndBase64Decode(bodyStr, 1, 6);
                         XLog.tag(TAG).i("获取机柜信息请求成功:" + deviceConfigStr);
                     } else {
@@ -330,6 +362,7 @@ public class Repository {
                     String deviceReStar = SubAndBase64Decode(bodyStr, 0, 6);
                     XLog.tag(TAG).i("设备重启:" + deviceReStar);
                     deviceManger.reboot();
+                    System.exit(0);
                 } else if (Arrays.equals(cCode, CMD_CODE_SHUTDOWN)) {//设备关机
                     String deviceOff = SubAndBase64Decode(bodyStr, 0, 6);
                     XLog.tag(TAG).i("设备关机:" + deviceOff);
@@ -344,8 +377,11 @@ public class Repository {
                     if (!TextUtils.isEmpty(printStr)) {
                         String lContent = JSON.parseObject(printStr).getString("content");
                         String lS = SubAndBase64Decode(lContent);
-                        List<PrintInfo> list = com.alibaba.fastjson.JSONObject.parseArray(lS, PrintInfo.class);
-                        deviceManger.printTicks(list);
+                        List<PrintInfo> list = JSONObject.parseArray(lS, PrintInfo.class);
+                        int code = deviceManger.printTicks(list);
+                        if (code != 0) {
+                            remoteRepository.sendErrorCode(code, 0, 0, (System.currentTimeMillis() / 1000));
+                        }
                     } else {
                         XLog.tag(TAG).i("打印内容为空");
                     }
@@ -404,101 +440,86 @@ public class Repository {
         });
     }
 
+    public AdvertContent getAdvertContent() {
+        return localRepository.getAdvertContent();
+    }
+
+    @SuppressLint("CheckResult")
+    public void getAdvertMouldByLiveData() {
+        localRepository.getAdvertMouldByLiveData().subscribe(advertMould -> {
+            XLog.tag(TAG).i("模板信息是：" + advertMould.toString());
+            mAdvertMouldMutableLiveData.postValue(advertMould);
+        });
+    }
+
     public void startLog() {
         deviceManger.initLog();
     }
 
+    public void initViewModelData(MutableLiveData<Integer> deviceStates, MutableLiveData<String> tempAndHumValue, MutableLiveData<String> deviceNoValue, MutableLiveData<String> qrPath, MutableLiveData<AdvertMould> advertMouldMutableLiveData) {
+        this.mDeviceNo = deviceNoValue;
+        this.mDeviceState = deviceStates;
+        this.mTempAndHumValue = tempAndHumValue;
+        this.mQrPath = qrPath;
+        this.mAdvertMouldMutableLiveData = advertMouldMutableLiveData;
+        getAdvertMouldByLiveData();
+    }
+
     private void ADScreenCapture() {
-        ThreadPoolUtils.getInstance().doThings(new Runnable() {
-            @Override
-            public void run() {
-                File file = new File(FilePathConstant.SCREEN_CAPTURE_PATH);
-                if (!file.exists()) {
-                    XLog.tag(TAG).i("截图开始");
-                    boolean isSuccess = deviceManger.takeScreenshot(FilePathConstant.SCREEN_CAPTURE_PATH);
-                    if (isSuccess) {
-                        XLog.tag(TAG).i("截图保存成功");
-                        remoteRepository.upDataScreenCapture(FilePathConstant.SCREEN_CAPTURE_PATH, deviceNO);
-                    } else {
-                        XLog.tag(TAG).i("截图保存失败");
-                    }
+        ThreadPoolUtils.getInstance().doThings(() -> {
+            File file = new File(FilePathConstant.SCREEN_CAPTURE_PATH);
+            if (!file.exists()) {
+                XLog.tag(TAG).i("截图开始");
+                boolean isSuccess = deviceManger.takeScreenshot(FilePathConstant.SCREEN_CAPTURE_PATH);
+                if (isSuccess) {
+                    XLog.tag(TAG).i("截图保存成功");
+                    remoteRepository.upDataScreenCapture(FilePathConstant.SCREEN_CAPTURE_PATH, deviceNO);
                 } else {
-                    XLog.tag(TAG).i("删除旧图");
-                    if (file.delete()) {
-                        XLog.tag(TAG).i("删除旧图后截图");
-                        ADScreenCapture();
-                    }
+                    XLog.tag(TAG).i("截图保存失败");
+                }
+            } else {
+                XLog.tag(TAG).i("删除旧图");
+                if (file.delete()) {
+                    XLog.tag(TAG).i("删除旧图后截图");
+                    ADScreenCapture();
                 }
             }
         });
     }
 
     private void upDataConfig() {
-        ThreadPoolUtils.getInstance().doThings(new Runnable() {
-            @Override
-            public void run() {
-                getAppInfo();
-                upDeviceMessage();
-                getDeviceExtendedInformation();
-                remoteRepository.timingUpLog(deviceNO);
-                getQR();
-                upNoUpdateShoppingResult();
-                timGetTemperatureAndHumidity();
-                getDeviceConfig();
-            }
+        ThreadPoolUtils.getInstance().doThings(() -> {
+            upDeviceMessage();
+            upNoUpdateShoppingResult();
+            getDeviceConfig();
+            getQR();
+            getAppInfo();
+            getDeviceExtendedInformation();
+            remoteRepository.timingUpLog(deviceNO);
+            timGetTemperatureAndHumidity();
         });
+    }
+
+    private void upDeviceMessage() {
+        JSONObject lJSONObject = new JSONObject();
+        lJSONObject.put("netType", 1);
+        lJSONObject.put("cmCard", NetUtils.getSIMCardNumber(context));
+        XLog.tag(TAG).i("上传信息：" + lJSONObject.toJSONString());
+        String lBase64 = BytesUtils.getBase64(lJSONObject.toJSONString());
+        remoteRepository.upDeviceMessage(lBase64);
     }
 
     private void upNoUpdateShoppingResult() {
         ResultShopping lResultShopping = localRepository.getResultShopping();
         if (lResultShopping != null) {
             remoteRepository.sendGoodsShoppingResult(lResultShopping.getOrderNO(), lResultShopping.getOrderState(), lResultShopping.getOrderResult(), lResultShopping.getTime());
-            localRepository.deleteResultShopping();
         } else {
             XLog.tag(TAG).i("没有未上传订单信息");
         }
     }
 
-    private void getQR() {
-        remoteRepository.getQRMessage(deviceNO, new Callback.CommonCallback<>() {
-            @Override
-            public void onSuccess(String result) {
-                XLog.tag(TAG).i("二维码信息" + result);
-                com.alibaba.fastjson.JSONObject lJSONObject = com.alibaba.fastjson.JSON.parseObject(result);
-                int lCode = lJSONObject.getInteger("status");
-                String msg = lJSONObject.getString("msg");
-                if (lCode == 1 && msg.equals("ok")) {
-                    String qRUrl = lJSONObject.getString("url");
-                    mQrPath.postValue(qRUrl);
-                } else {
-                    XLog.tag(TAG).i("获取二维码信息失败");
-                }
-            }
-
-            @Override
-            public void onError(Throwable ex, boolean isOnCallback) {
-                XLog.tag(TAG).i("获取二维码信息失败" + ex.getMessage());
-            }
-
-            @Override
-            public void onCancelled(CancelledException cex) {
-
-            }
-
-            @Override
-            public void onFinished() {
-
-            }
-        });
-    }
-
     private void getDeviceConfig() {
-        remoteRepository.getDeviceConfigS(deviceNO, new Callback.CacheCallback<>() {
-            @Override
-            public boolean onCache(String result) {
-                return false;
-            }
-
+        remoteRepository.getDeviceConfigS(deviceNO, new Callback.CommonCallback<>() {
             @Override
             public void onSuccess(String result) {
                 JSONObject mJson = JSON.parseObject(result);
@@ -508,9 +529,12 @@ public class Repository {
                     DeviceBean lDeviceInfo = JSON.parseObject(lData, DeviceBean.class);
                     if (lDeviceInfo != null) {
                         List<Goods> goods = lDeviceInfo.getmList();
+                        Collections.sort(goods);
+                        Log.i(TAG, "远程数据是：" + goods);
                         if (!goods.isEmpty()) {
                             List<Goods> lAllGoods = localRepository.getAllGoods();
-                            if (lAllGoods.size() > goods.size()) {
+                            Log.i(TAG, "本地数据是：" + lAllGoods);
+                            if (lAllGoods != null && lAllGoods.size() > goods.size()) {
                                 localRepository.deleteGoods();
                                 XLog.tag(TAG).i("删除本地数据");
                             }
@@ -548,67 +572,33 @@ public class Repository {
 
     private void upDataDeviceGoodsMessage() {
         XLog.tag(TAG).i("上传数据");
-        List<Goods> upGoods = localRepository.getAllGoods();
+        List<Goods> lAllGoods = localRepository.getAllGoods();
         DeviceBean deviceBean = new DeviceBean();
         deviceBean.setDevNo(deviceNO);
-        deviceBean.setmList(upGoods);
+        deviceBean.setmList(lAllGoods);
         String deviceJson = JSON.toJSONString(deviceBean);
         remoteRepository.upDeviceConfigS(deviceJson);
     }
 
-    private void getDeviceExtendedInformation() {
-        remoteRepository.getDeviceNewExtendedInformation(deviceNO, new Callback.CacheCallback<>() {
-            @Override
-            public boolean onCache(String result) {
-                return false;
-            }
-
+    private void getQR() {
+        remoteRepository.getQRMessage(deviceNO, new Callback.CommonCallback<>() {
             @Override
             public void onSuccess(String result) {
-                XLog.tag(TAG).i("通过后台获取新广告信息:" + result);
+                XLog.tag(TAG).i("二维码信息" + result);
                 JSONObject lJSONObject = JSON.parseObject(result);
-                if (lJSONObject.getInteger("code") == 200) {
-                    JSONObject lData = lJSONObject.getJSONObject("data");
-                    JSONObject lMoldboard = lData.getJSONObject("info");
-                    Integer sProId = lMoldboard.getInteger("id");
-                    XLog.tag(TAG).i("远程广告模板id：" + sProId);
-                    double sProVersion = lMoldboard.getDouble("version");
-                    XLog.tag(TAG).i("远程广告模板版本：" + sProVersion);
-                    String sFilePath = lMoldboard.getString("filePath");
-                    if (TextUtils.isEmpty(sFilePath) || sFilePath.length() < 5) {
-                        XLog.tag(TAG).i("下载广告模板地址异常");
-                        return;
-                    }
-                    String sUrl = NetworkConfiguration.ADVERT_FILE_URL + sFilePath;
-                    AdvertMould lAdvertMould = localRepository.getAdvertMould();
-                    int lPicId = 0;
-                    double lVersion = 0.0;
-                    if (lAdvertMould != null) {
-                        lPicId = lAdvertMould.getMouldId();
-                        lVersion = lAdvertMould.getMouldVersion();
-                    }
-                    XLog.tag(TAG).i("本地广告模板：" + lPicId + "   本地广告模板版本：" + lVersion);
-                    String savePath = FilePathConstant.FILE_PATH;
-                    if (sProId != lPicId | sProVersion != lVersion) {
-                        XLog.tag(TAG).i("下载不同id或同id不同版广告模板");
-                        downLoadAdvertProcedures(lData, sUrl, savePath, sProId, sProVersion);
-                    } else {
-                        XLog.tag(TAG).i("不需要更新广告模板");
-                        upAdvertPicture(lData, savePath, new AdvertMould(1, sProId, sProVersion));
-
-                    }
+                int lCode = lJSONObject.getInteger("status");
+                String msg = lJSONObject.getString("msg");
+                if (lCode == 1 && msg.equals("ok")) {
+                    String qRUrl = lJSONObject.getString("url");
+                    mQrPath.postValue(qRUrl);
                 } else {
-                    String lMsg = lJSONObject.getString("msg");
-                    String lS = SubAndBase64Decode(lMsg);
-                    XLog.tag(TAG).i("获取广告信息失败:" + lS);
-                    localRepository.updateAndInsertAdvertMould(new AdvertMould(1, 0, 0.0));
-                    localRepository.updateAndInsertAdvertContent(new AdvertContent(1, ""));
+                    XLog.tag(TAG).i("获取二维码信息失败");
                 }
             }
 
             @Override
             public void onError(Throwable ex, boolean isOnCallback) {
-                XLog.tag(TAG).i("新广告信息获取失败：" + ex.getMessage());
+                XLog.tag(TAG).i("获取二维码信息失败" + ex.getMessage());
             }
 
             @Override
@@ -623,183 +613,21 @@ public class Repository {
         });
     }
 
-    private void downLoadAdvertProcedures(@NonNull JSONObject jsonObject, @NonNull String url, String savePath, int id, double version) {
-
-        ThreadPoolUtils.getInstance().doThings(new Runnable() {
-            @Override
-            public void run() {
-                String fileName = url.substring(url.lastIndexOf("/") + 1);
-                String lFileSavePath = savePath + fileName;
-                XLog.tag(TAG).i("广告模板下载地址：" + url);
-                remoteRepository.downLoadFile(url, lFileSavePath, new Callback.CommonCallback<>() {
-                    @Override
-                    public void onSuccess(@NonNull File result) {
-                        XLog.tag(TAG).i("广告模板下载成功");
-                        if (result.exists() && result.length() > 0) {
-                            File file = new File(FilePathConstant.FILE_PATH);
-                            if (file.exists()) {
-                                File[] files = file.listFiles();
-                                if (files != null) {
-                                    for (File file1 : files) {
-                                        if (!file1.getName().endsWith(".zip") && !file1.getName().endsWith("BannerImg")) {
-                                            FileUtil.deleteFileOrDir(file1);
-                                        }
-                                    }
-                                }
-                            }
-                            if (ZipUtils.unZipFile(result.getPath(), savePath)) {
-                                XLog.tag(TAG).i("广告模板解压成功");
-                                upAdvertPicture(jsonObject, savePath, new AdvertMould(1, id, version));
-                            } else {
-                                XLog.tag(TAG).i("解压广告模板失败");
-
-                            }
-                            FileUtil.deleteFileOrDir(result);
-                        } else {
-                            XLog.tag(TAG).i("广告模板下载失败");
-                        }
-                    }
-
-                    @Override
-                    public void onError(@NonNull Throwable ex, boolean isOnCallback) {
-                        XLog.tag(TAG).i("onError下载广告模板失败:" + ex.getMessage());
-                    }
-
-                    @Override
-                    public void onCancelled(CancelledException cex) {
-
-                    }
-
-                    @Override
-                    public void onFinished() {
-
-                    }
-                });
-            }
-        });
-    }
-
-    private void upAdvertPicture(@NonNull JSONObject jsonObject, String savePath, AdvertMould advertMould) {
-        ArrayList<String> sBannerImageList = new ArrayList<>();
-        String lPicFilePath = savePath + FilePathConstant.BANNER_IMG;
-        JSONArray lList = jsonObject.getJSONArray("list");
-        if (lList == null || lList.isEmpty()) {
-            XLog.tag(TAG).i("远程广告包信息为空");
-            return;
-        } else {
-            for (int i = 0; i < lList.size(); i++) {
-                List<String> lFileList = JSONArray.parseArray(lList.getJSONObject(i).getString("filePath"), String.class);
-                sBannerImageList.addAll(lFileList);
-            }
-        }
-        AdvertContent lAdvertContent = localRepository.getAdvertContent();
-        List<String> lBannerImageList = null;
-        if (lAdvertContent != null) {
-            String lContent = lAdvertContent.getContent();
-            if (lContent != null && !lContent.equals("")) {
-                lBannerImageList = JSONArray.parseArray(lContent, String.class);
-                XLog.tag(TAG).i("本地广告包信息为:" + lBannerImageList);
-            } else {
-                XLog.tag(TAG).i("本地广告包内容为空");
-            }
-        } else {
-            XLog.tag(TAG).i("本地广告包信息为空");
-        }
-        HashSet<String> downLoadUrls = new HashSet<>();
-        ArrayList<String> saveBannerImageList = new ArrayList<>();
-        for (String lS : sBannerImageList) {
-            String fileName = lS.substring(lS.lastIndexOf("/") + 1);
-            saveBannerImageList.add(fileName);
-            String url = NetworkConfiguration.ADVERT_FILE_URL + lS;
-            if (lBannerImageList != null) {
-                if (!lBannerImageList.contains(fileName)) {
-                    downLoadUrls.add(url);
-                }
-            } else {
-                downLoadUrls.add(url);
-            }
-        }
-        XLog.tag(TAG).i("远程广告包信息为:" + saveBannerImageList);
-        downLoadAdvertPicture(downLoadUrls, lPicFilePath, saveBannerImageList, advertMould);
-    }
-
-    private void downLoadAdvertPicture(@NonNull HashSet<String> urlList, String savePath, @NonNull List<String> bannerList, AdvertMould advertMould) {
-        ThreadPoolUtils.getInstance().doThings(new Runnable() {
-            @Override
-            public void run() {
-                if (!urlList.isEmpty()) {
-                    for (String url : urlList) {
-                        XLog.tag(TAG).i("广告包下载地址：" + url + " " + urlList.size());
-                        String fileName = url.substring(url.lastIndexOf("/") + 1);
-                        String lFileSavePath = savePath + fileName;
-                        if (url.length() > 5) {
-                            remoteRepository.downLoadFile(url, lFileSavePath, new Callback.CommonCallback<>() {
-                                @Override
-                                public void onSuccess(@NonNull File result) {
-                                    if (result.exists() && result.length() > 0) {
-                                        downLoadCount++;
-                                    } else {
-                                        XLog.tag(TAG).i("文件无效");
-                                    }
-                                    if (downLoadCount == urlList.size()) {
-                                        String bannerListString = JSON.toJSONString(bannerList);
-                                        localRepository.updateAndInsertAdvertContent(new AdvertContent(1, bannerListString));
-                                        localRepository.updateAndInsertAdvertMould(advertMould);
-                                        downLoadCount = 0;
-                                        XLog.tag(TAG).i("广告包全部下载成功");
-                                    }
-                                }
-
-                                @Override
-                                public void onError(@NonNull Throwable ex, boolean isOnCallback) {
-                                    XLog.tag(TAG).i("下载广告包失败:" + ex.getMessage());
-                                    ex.printStackTrace();
-                                }
-
-                                @Override
-                                public void onCancelled(CancelledException cex) {
-
-                                }
-
-                                @Override
-                                public void onFinished() {
-
-                                }
-                            });
-                        } else {
-                            XLog.tag(TAG).i("获取新的广告包下载地址为空");
-                        }
-                    }
-                } else {
-                    localRepository.updateAndInsertAdvertMould(advertMould);
-                    String bannerListString = JSON.toJSONString(bannerList);
-                    localRepository.updateAndInsertAdvertContent(new AdvertContent(1, bannerListString));
-                    XLog.tag(TAG).i("不需要更新广告包");
-                }
-            }
-        });
-    }
-
     private void getAppInfo() {
-        remoteRepository.getNewAppInfo(deviceNO, NetUtils.getMacAddress(), new Callback.CacheCallback<>() {
-            @Override
-            public boolean onCache(String result) {
-                return false;
-            }
-
+        remoteRepository.getNewAppInfo(deviceNO, NetUtils.getMacAddress(), new Callback.CommonCallback<>() {
             @Override
             public void onSuccess(String result) {
                 XLog.tag(TAG).i("app更新信息" + result);
                 JSONObject lJSONObject = JSON.parseObject(result);
-                int lCode = lJSONObject.getInteger("code");
-                if (lCode == 200) {
+                int code = lJSONObject.getInteger("code");
+                if (code == 200) {
                     JSONObject lData = lJSONObject.getJSONObject("data");
                     String sCode = lData.getString("version");
                     XLog.tag(TAG).i("app远程版本" + sCode);
                     if (!TextUtils.isEmpty(sCode)) {
-                        int vCode = AppUtils.getAppVersionCode(context);
-                        XLog.tag(TAG).i("app本地版本" + vCode);
-                        if (vCode < Double.parseDouble(sCode)) {
+                        int lCode = AppUtils.getAppVersionCode(context);
+                        XLog.tag(TAG).i("app本地版本" + lCode);
+                        if (lCode < Double.parseDouble(sCode)) {
                             XLog.tag(TAG).i("更新app");
                             String url = lData.getString("fileName");
                             String filePath = FilePathConstant.APK_PATH + context.getString(R.string.app_name) + "V" + sCode + ".apk";
@@ -831,12 +659,7 @@ public class Repository {
     }
 
     private void downLoadApk(String url, String filePath) {
-        remoteRepository.downLoadApk(url, filePath, new Callback.CacheCallback<>() {
-            @Override
-            public boolean onCache(File result) {
-                return false;
-            }
-
+        remoteRepository.downLoadApk(url, filePath, new Callback.CommonCallback<>() {
             @Override
             public void onSuccess(File result) {
                 if (result.exists() && result.length() > 0) {
@@ -880,13 +703,220 @@ public class Repository {
         }
     }
 
-    private void upDeviceMessage() {
-        JSONObject lJSONObject = new JSONObject();
-        lJSONObject.put("netType", 1);
-        lJSONObject.put("cmCard", NetUtils.getSIMCardNumber(context));
-        XLog.tag(TAG).i("上传信息：" + lJSONObject.toJSONString());
-        String lBase64 = BytesUtils.getBase64(lJSONObject.toJSONString());
-        remoteRepository.upDeviceMessage(lBase64);
+    private void getDeviceExtendedInformation() {
+        remoteRepository.getDeviceNewExtendedInformation(deviceNO, new Callback.CommonCallback<>() {
+            @Override
+            public void onSuccess(String result) {
+                XLog.tag(TAG).i("通过后台获取新广告信息:" + result);
+                JSONObject lJSONObject = JSON.parseObject(result);
+                if (lJSONObject.getInteger("code") == 200) {
+                    JSONObject lData = lJSONObject.getJSONObject("data");
+                    JSONObject lMoldboard = lData.getJSONObject("info");
+                    Integer sProId = lMoldboard.getInteger("id");
+                    XLog.tag(TAG).i("远程广告模板id：" + sProId);
+                    double sProVersion = lMoldboard.getDouble("version");
+                    XLog.tag(TAG).i("远程广告模板版本：" + sProVersion);
+                    String sFilePath = lMoldboard.getString("filePath");
+                    if (TextUtils.isEmpty(sFilePath) || sFilePath.length() < 5) {
+                        XLog.tag(TAG).i("下载广告模板地址异常");
+                        return;
+                    }
+                    String sUrl = NetworkConfiguration.ADVERT_FILE_URL + sFilePath;
+                    AdvertMould lAdvertMould = localRepository.getAdvertMould();
+                    int lPicId = 0;
+                    double lVersion = 0.0;
+                    if (lAdvertMould != null) {
+                        lPicId = lAdvertMould.getMouldId();
+                        lVersion = lAdvertMould.getMouldVersion();
+                    }
+                    XLog.tag(TAG).i("本地广告模板id：" + lPicId + "   本地广告模板版本：" + lVersion);
+                    String savePath = FilePathConstant.FILE_PATH;
+                    if (sProId != lPicId | sProVersion != lVersion) {
+                        XLog.tag(TAG).i("下载不同id或同id不同版广告模板");
+                        downLoadAdvertProcedures(lData, sUrl, savePath, sProId, sProVersion);
+                    } else {
+                        XLog.tag(TAG).i("不需要更新广告模板");
+                        upAdvertPicture(lData, savePath, new AdvertMould(1, sProId, sProVersion), false);
+
+                    }
+                } else {
+                    String lMsg = lJSONObject.getString("msg");
+                    String lS = SubAndBase64Decode(lMsg);
+                    XLog.tag(TAG).i("获取广告信息失败:" + lS);
+                    localRepository.updateAndInsertAdvertMould(new AdvertMould(1, 0, 0.0));
+                    localRepository.updateAndInsertAdvertContent(new AdvertContent(1, ""));
+                }
+            }
+
+            @Override
+            public void onError(Throwable ex, boolean isOnCallback) {
+                XLog.tag(TAG).i("新广告信息获取失败：" + ex.getMessage());
+            }
+
+            @Override
+            public void onCancelled(CancelledException cex) {
+
+            }
+
+            @Override
+            public void onFinished() {
+
+            }
+        });
+    }
+
+    private void downLoadAdvertProcedures(@NonNull JSONObject jsonObject, @NonNull String url, String savePath, int id, double version) {
+        ThreadPoolUtils.getInstance().doThings(() -> {
+            String fileName = url.substring(url.lastIndexOf("/") + 1);
+            String lFileSavePath = savePath + fileName;
+            XLog.tag(TAG).i("广告模板下载地址：" + url);
+            remoteRepository.downLoadFile(url, lFileSavePath, new Callback.CommonCallback<>() {
+                @Override
+                public void onSuccess(@NonNull File result) {
+                    XLog.tag(TAG).i("广告模板下载成功");
+                    if (result.exists() && result.length() > 0) {
+                        File file = new File(FilePathConstant.FILE_PATH);
+                        if (file.exists()) {
+                            File[] files = file.listFiles();
+                            if (files != null) {
+                                for (File file1 : files) {
+                                    if (!file1.getName().endsWith(".zip") & !file1.getName().endsWith("BannerImg")) {
+                                        FileUtil.deleteFileOrDir(file1);
+                                    }
+                                }
+                            }
+                        }
+                        if (ZipUtils.unZipFile(result.getPath(), savePath)) {
+                            XLog.tag(TAG).i("广告模板解压成功");
+                            upAdvertPicture(jsonObject, savePath, new AdvertMould(1, id, version), true);
+                        } else {
+                            XLog.tag(TAG).i("解压广告模板失败");
+                            upAdvertPicture(jsonObject, savePath, new AdvertMould(1, 0, 0.0), false);
+                        }
+                        FileUtil.deleteFileOrDir(result);
+                    } else {
+                        XLog.tag(TAG).i("广告模板下载失败");
+                    }
+                }
+
+                @Override
+                public void onError(@NonNull Throwable ex, boolean isOnCallback) {
+                    XLog.tag(TAG).i("onError下载广告模板失败:" + ex.getMessage());
+                }
+
+                @Override
+                public void onCancelled(CancelledException cex) {
+
+                }
+
+                @Override
+                public void onFinished() {
+
+                }
+            });
+        });
+    }
+
+    private void upAdvertPicture(@NonNull JSONObject jsonObject, String savePath, AdvertMould advertMould, boolean isUpDateAdvertMould) {
+        ArrayList<String> sBannerImageList = new ArrayList<>();
+        String lPicFilePath = savePath + FilePathConstant.BANNER_IMG;
+        JSONArray lList = jsonObject.getJSONArray("list");
+        if (lList == null || lList.isEmpty()) {
+            XLog.tag(TAG).i("远程广告包信息为空");
+            return;
+        } else {
+            for (int i = 0; i < lList.size(); i++) {
+                List<String> lFileList = JSONArray.parseArray(lList.getJSONObject(i).getString("filePath"), String.class);
+                sBannerImageList.addAll(lFileList);
+            }
+        }
+        AdvertContent lAdvertContent = localRepository.getAdvertContent();
+        List<String> lBannerImageList = null;
+        if (lAdvertContent != null) {
+            String lContent = lAdvertContent.getContent();
+            if (lContent != null && !lContent.equals("")) {
+                lBannerImageList = JSONArray.parseArray(lContent, String.class);
+                XLog.tag(TAG).i("本地广告包信息为:" + lBannerImageList);
+            } else {
+                XLog.tag(TAG).i("本地广告包内容为空");
+            }
+        } else {
+            XLog.tag(TAG).i("本地广告包信息为空");
+        }
+        HashSet<String> downLoadUrls = new HashSet<>();
+        ArrayList<String> saveBannerImageList = new ArrayList<>();
+        for (String lS : sBannerImageList) {
+            String fileName = lS.substring(lS.lastIndexOf("/") + 1);
+            saveBannerImageList.add(fileName);
+            String url = NetworkConfiguration.ADVERT_FILE_URL + lS;
+            if (lBannerImageList != null) {
+                if (!lBannerImageList.contains(fileName)) {
+                    downLoadUrls.add(url);
+                }
+            } else {
+                downLoadUrls.add(url);
+            }
+        }
+        XLog.tag(TAG).i("远程广告包信息为:" + saveBannerImageList);
+        downLoadAdvertPicture(downLoadUrls, lPicFilePath, saveBannerImageList, advertMould, isUpDateAdvertMould);
+    }
+
+    private void downLoadAdvertPicture(@NonNull HashSet<String> urlList, String savePath, @NonNull List<String> bannerList, AdvertMould advertMould, boolean isUpDateAdvertMould) {
+        ThreadPoolUtils.getInstance().doThings(() -> {
+            if (!urlList.isEmpty()) {
+                for (String url : urlList) {
+                    XLog.tag(TAG).i("广告包下载地址：" + url + " " + urlList.size());
+                    String fileName = url.substring(url.lastIndexOf("/") + 1);
+                    String lFileSavePath = savePath + fileName;
+                    if (url.length() > 5) {
+                        remoteRepository.downLoadFile(url, lFileSavePath, new Callback.CommonCallback<>() {
+                            @Override
+                            public void onSuccess(@NonNull File result) {
+                                if (result.exists() && result.length() > 0) {
+                                    downLoadCount++;
+                                } else {
+                                    XLog.tag(TAG).i("文件无效");
+                                }
+                                if (downLoadCount == urlList.size()) {
+                                    String bannerListString = JSON.toJSONString(bannerList);
+                                    localRepository.updateAndInsertAdvertContent(new AdvertContent(1, bannerListString));
+                                    localRepository.updateAndInsertAdvertMould(advertMould);
+                                    downLoadCount = 0;
+                                    XLog.tag(TAG).i("广告包全部下载成功");
+                                }
+                            }
+
+                            @Override
+                            public void onError(@NonNull Throwable ex, boolean isOnCallback) {
+                                XLog.tag(TAG).i("下载广告包失败:" + ex.getMessage());
+                                ex.printStackTrace();
+                            }
+
+                            @Override
+                            public void onCancelled(CancelledException cex) {
+
+                            }
+
+                            @Override
+                            public void onFinished() {
+
+                            }
+                        });
+                    } else {
+                        XLog.tag(TAG).i("获取新的广告包下载地址为空");
+                    }
+                }
+            } else {
+                if (isUpDateAdvertMould) {
+                    localRepository.updateAndInsertAdvertMould(advertMould);
+                    String bannerListString = JSON.toJSONString(bannerList);
+                    localRepository.updateAndInsertAdvertContent(new AdvertContent(1, bannerListString));
+                    XLog.tag(TAG).i("不需要更新广告包");
+                } else {
+                    XLog.tag(TAG).i("不需要更新广告");
+                }
+            }
+        });
     }
 
     public void outGoods(String outCode) {
@@ -894,14 +924,22 @@ public class Repository {
             mDeviceState.postValue(DeviceStateConstant.DEVICE_PROCESSING);
             deviceState = DeviceStateConstant.DEVICE_PROCESSING;
             remoteRepository.getOutShoppingGoodsInfo(outCode);
+            mSendTimeOutTimer = new Timer();
+            mSendTimeOutTimer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    mDeviceState.postValue(DeviceStateConstant.DEVICE_ORDER_GET_TIME_OUT);
+                    deviceState = DeviceStateConstant.DEVICE_NORMAL;
+                }
+            }, 20000);
         } else {
             XLog.tag(TAG).i("设备正在出货");
         }
     }
 
     public void shoppingGoods(String orderNO, List<Goods> shoppingGoodsList, List<ResultShoppingGoods> resultShoppingGoods, boolean isOutGoods) {
-        deviceState = DeviceStateConstant.DEVICE_OUTING_GOODS;
         mDeviceState.postValue(DeviceStateConstant.DEVICE_OUTING_GOODS);
+        deviceState = DeviceStateConstant.DEVICE_OUTING_GOODS;
         int size = shoppingGoodsList.size();
         XLog.tag(TAG).i("出货数据：" + shoppingGoodsList);
         Goods shoppingGoods = shoppingGoodsList.get(outNo);
@@ -909,7 +947,9 @@ public class Repository {
             @Override
             public void onDataSend(byte[] bytes) {
                 super.onDataSend(bytes);
-                if (!isOutPackage) {
+                String resultMessage = new String(bytes, StandardCharsets.US_ASCII);
+                XLog.tag(TAG).i("串口发送数据：" + resultMessage);
+                if (!resultMessage.startsWith("temp") && !isOutPackage) {
                     mOutGoodsTimer = new Timer();
                     mOutGoodsTimer.schedule(new TimerTask() {
                         @Override
@@ -918,32 +958,37 @@ public class Repository {
                             if (isOutGoods) {
                                 remoteRepository.sendErrorCode(77, shoppingGoodsList.get(outNo).getIR(), shoppingGoodsList.get(outNo).getIC(), (System.currentTimeMillis() / 1000));
                                 orderState = 1;
-                                for (ResultShoppingGoods resultShoppingGood : resultShoppingGoods) {
-                                    if (resultShoppingGood.getSuccessCount() == 0) {
-                                        resultShoppingGood.setFailCount(resultShoppingGood.getFailCount() + 1);
+                                for (int i = outNo; i < shoppingGoodsList.size(); i++) {
+                                    int line = shoppingGoodsList.get(i).getIR();
+                                    int colNo = shoppingGoodsList.get(i).getIC();
+                                    for (int j = 0; j < resultShoppingGoods.size(); j++) {
+                                        ResultShoppingGoods lResultShoppingGoods = resultShoppingGoods.get(j);
+                                        if (lResultShoppingGoods.getLine() == line && lResultShoppingGoods.getColNo() == colNo) {
+                                            lResultShoppingGoods.setFailCount(lResultShoppingGoods.getFailCount() + 1);
+                                        }
                                     }
                                 }
                                 String shoppingResult = JSONArray.toJSONString(resultShoppingGoods);
-                                XLog.tag(TAG).i("超时出货完成结果：" + shoppingResult);
+                                XLog.tag(TAG).i("出货超时结果：" + shoppingResult);
                                 remoteRepository.sendGoodsShoppingResult(orderNO, String.valueOf(orderState), shoppingResult, (System.currentTimeMillis() / 1000) + "");
                                 localRepository.addResultShopping(new ResultShopping(1, orderNO, String.valueOf(orderState), shoppingResult, (System.currentTimeMillis() / 1000) + ""));
                                 if (outNo == 0) {
                                     mDeviceState.postValue(DeviceStateConstant.DEVICE_OUT_GOODS_FAIL);
                                     deviceState = DeviceStateConstant.DEVICE_NORMAL;
                                 } else {
-                                    getPackage();
-                                    mDeviceState.postValue(DeviceStateConstant.DEVICE_OUT_GOODS_PART_FAIL);
+                                    getPackage(DeviceStateConstant.DEVICE_OUT_GOODS_PART_FAIL);
                                 }
                                 failCount = 0;
                                 outNo = 0;
                                 orderState = 0;
                                 remoteRepository.sendErrorCode(0, 0, 0, (System.currentTimeMillis() / 1000));
                             } else {
+                                XLog.tag(TAG).i("测试货道出货超时");
                                 mDeviceState.postValue(DeviceStateConstant.DEVICE_OUT_GOODS_FAIL);
                                 deviceState = DeviceStateConstant.DEVICE_NORMAL;
                             }
                         }
-                    }, 50000);
+                    }, 60000);
                 }
             }
 
@@ -952,7 +997,7 @@ public class Repository {
                 super.onDataReceived(bytes);
                 if (!isOutPackage) {
                     String resultMessage = new String(bytes, StandardCharsets.US_ASCII);
-                    XLog.tag(TAG).i("返回的数据：" + resultMessage);
+                    XLog.tag(TAG).i("出货串口返回数据：" + resultMessage);
                     mOutGoodsTimer.cancel();
                     if (resultMessage.startsWith("res:")) {
                         String result = resultMessage.replace("res:", "").replace("\r\n", "");
@@ -996,14 +1041,12 @@ public class Repository {
                                 });
                             }
                             if (failCount == 0) {
-                                getPackage();
-                                mDeviceState.postValue(DeviceStateConstant.DEVICE_OUT_GOODS_SUCCESSFUL);
+                                getPackage(DeviceStateConstant.DEVICE_OUT_GOODS_SUCCESSFUL);
                             } else if (failCount == size) {
                                 mDeviceState.postValue(DeviceStateConstant.DEVICE_OUT_GOODS_FAIL);
                                 deviceState = DeviceStateConstant.DEVICE_NORMAL;
                             } else {
-                                getPackage();
-                                mDeviceState.postValue(DeviceStateConstant.DEVICE_OUT_GOODS_PART_FAIL);
+                                getPackage(DeviceStateConstant.DEVICE_OUT_GOODS_PART_FAIL);
                             }
                             outNo = 0;
                             orderState = 0;
@@ -1023,10 +1066,21 @@ public class Repository {
         double icc = shoppingGoods.getICC();
         double irc = shoppingGoods.getIRC();
         XLog.tag(TAG).i("开始出货");
-        deviceManger.shoppingGoods(irc, icc, 0);
+        if (mIsGetTempAndHum) {
+            new Timer().schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    if (!mIsGetTempAndHum) {
+                        deviceManger.shoppingGoods(irc, icc, 0);
+                    }
+                }
+            }, 2000);
+        } else {
+            deviceManger.shoppingGoods(irc, icc, 0);
+        }
     }
 
-    private void getPackage() {
+    private void getPackage(int outGoodsResult) {
         deviceManger.addDeviceDataListener(new OnDataListener() {
             @Override
             public void onDataSend(byte[] bytes) {
@@ -1038,7 +1092,9 @@ public class Repository {
                         public void run() {
                             packageNo = 1;
                             isOutPackage = false;
+                            mDeviceState.postValue(outGoodsResult);
                             deviceState = DeviceStateConstant.DEVICE_NORMAL;
+                            XLog.tag(TAG).i("取包装袋失败串口通讯超时");
                         }
                     }, 50000);
                 }
@@ -1050,14 +1106,16 @@ public class Repository {
                 if (isOutPackage) {
                     mOutPackageTimer.cancel();
                     String resultMessage = new String(bytes, StandardCharsets.US_ASCII);
-                    XLog.tag(TAG).i("取包装袋返回的数据：" + resultMessage);
+                    XLog.tag(TAG).i("取包装袋串口返回的数据：" + resultMessage);
                     if (resultMessage.startsWith("res:")) {
+                        XLog.tag(TAG).i("取包装袋返回的数据：" + resultMessage);
                         String result = resultMessage.replace("res:", "").replace("\r\n", "");
                         int resultCode = Integer.parseInt(result);
                         if (resultCode == 0) {
                             XLog.tag(TAG).i("取包装袋成功");
                             packageNo = 1;
                             isOutPackage = false;
+                            mDeviceState.postValue(outGoodsResult);
                             deviceState = DeviceStateConstant.DEVICE_NORMAL;
                         } else {
                             if (packageNo != packageCount) {
@@ -1067,6 +1125,7 @@ public class Repository {
                                 XLog.tag(TAG).i("取包装袋失败");
                                 packageNo = 1;
                                 isOutPackage = false;
+                                mDeviceState.postValue(outGoodsResult);
                                 deviceState = DeviceStateConstant.DEVICE_NORMAL;
                             }
                         }
@@ -1085,11 +1144,30 @@ public class Repository {
                 if (deviceState == DeviceStateConstant.DEVICE_NORMAL) {
                     deviceManger.addDeviceDataListener(new OnDataListener() {
                         @Override
+                        public void onDataSend(byte[] bytes) {
+                            super.onDataSend(bytes);
+                            String resultMessage = new String(bytes, StandardCharsets.US_ASCII);
+                            XLog.tag(TAG).i("串口发送数据：" + resultMessage);
+                            if (resultMessage.startsWith("temp")) {
+                                mGetTempTimer = new Timer();
+                                mGetTempTimer.schedule(new TimerTask() {
+                                    @Override
+                                    public void run() {
+                                        mIsGetTempAndHum = false;
+                                    }
+                                }, 2000);
+                            }
+                        }
+
+                        @Override
                         public void onDataReceived(byte[] bytes) {
                             super.onDataReceived(bytes);
                             String resultMessage = new String(bytes, StandardCharsets.US_ASCII);
-                            XLog.tag(TAG).i("温湿度返回的数据：" + resultMessage);
-                            if ("temp:".startsWith(resultMessage)) {
+                            XLog.tag(TAG).i("温湿度串口返回的数据：" + resultMessage);
+                            if (resultMessage.startsWith("temp:")) {
+                                mIsGetTempAndHum = false;
+                                mGetTempTimer.cancel();
+                                XLog.tag(TAG).i("温湿度返回的数据：" + resultMessage);
                                 String[] tempAndHum = resultMessage.replace("temp:", "").replace("\r\n", "").split(",");
                                 XLog.tag(TAG).i("温度：" + tempAndHum[0] + " " + "湿度：" + tempAndHum[1]);
                                 int lI = Integer.parseInt(tempAndHum[0]);
@@ -1106,6 +1184,7 @@ public class Repository {
                         }
                     });
                     XLog.tag(TAG).i("获取温湿度");
+                    mIsGetTempAndHum = true;
                     deviceManger.getTemperatureAndHumidity();
                 }
             }
