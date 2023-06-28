@@ -137,7 +137,6 @@ public class RemoteRepository {
     }
 
     public void getQRMessage(String deviceNO, Callback.CommonCallback<String> callback) {
-        XLog.tag(TAG).i("设备编号：" + deviceNO);
         mHttpUtils.getQRInfo(deviceNO, callback);
     }
 

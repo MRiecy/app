@@ -178,7 +178,7 @@ public class Repository {
             @Override
             public void onPulseSend(ConnectionInfo info, @NonNull IPulseSendable data) {
                 super.onPulseSend(info, data);
-                XLog.tag(TAG).i("onPulseSend：" + bytesToHexString(data.parse()));
+               // XLog.tag(TAG).i("onPulseSend：" + bytesToHexString(data.parse()));
             }
 
             //发送给服务器回调
@@ -1165,8 +1165,10 @@ public class Repository {
                             String resultMessage = new String(bytes, StandardCharsets.US_ASCII);
                             XLog.tag(TAG).i("温湿度串口返回的数据：" + resultMessage);
                             if (resultMessage.startsWith("temp:")) {
+                                if (mGetTempTimer != null) {
+                                    mGetTempTimer.cancel();
+                                }
                                 mIsGetTempAndHum = false;
-                                mGetTempTimer.cancel();
                                 XLog.tag(TAG).i("温湿度返回的数据：" + resultMessage);
                                 String[] tempAndHum = resultMessage.replace("temp:", "").replace("\r\n", "").split(",");
                                 XLog.tag(TAG).i("温度：" + tempAndHum[0] + " " + "湿度：" + tempAndHum[1]);

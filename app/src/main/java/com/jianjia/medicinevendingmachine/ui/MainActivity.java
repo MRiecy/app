@@ -190,8 +190,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void init() {
-        mainViewModel.initRepositoryData();
         addDataObserver();
+        mainViewModel.initRepositoryData();
         addNetworkMonitor();
     }
 
@@ -406,13 +406,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     public void addNetworkMonitor() {
-        ThreadPoolUtils.getInstance().doThings(new Runnable() {
-            @Override
-            public void run() {
-                if (!NetUtils.ping()) {
-                    XLog.tag(TAG).i("无网络");
-                    runOnUiThread(() -> changPage(DeviceStateConstant.DEVICE_NO_NET));
-                }
+        ThreadPoolUtils.getInstance().doThings(() -> {
+            if (!NetUtils.ping()) {
+                XLog.tag(TAG).i("无网络");
+                runOnUiThread(() -> changPage(DeviceStateConstant.DEVICE_NO_NET));
             }
         });
         XLog.tag(TAG).i("监听网络状态");
@@ -482,6 +479,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         public void onReceivedError(@NonNull WebView view, WebResourceRequest request, @NonNull WebResourceError error) {
             super.onReceivedError(view, request, error);
             XLog.tag(TAG).i("web " + error.getDescription() + "");
+            loadDefaultWeb();
         }
 
         @Override
