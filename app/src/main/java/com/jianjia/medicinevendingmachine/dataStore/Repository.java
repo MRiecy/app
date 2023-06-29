@@ -178,7 +178,7 @@ public class Repository {
             @Override
             public void onPulseSend(ConnectionInfo info, @NonNull IPulseSendable data) {
                 super.onPulseSend(info, data);
-               // XLog.tag(TAG).i("onPulseSend：" + bytesToHexString(data.parse()));
+                // XLog.tag(TAG).i("onPulseSend：" + bytesToHexString(data.parse()));
             }
 
             //发送给服务器回调
@@ -381,6 +381,7 @@ public class Repository {
                         int code = deviceManger.printTicks(list);
                         if (code != 0) {
                             remoteRepository.sendErrorCode(code, 0, 0, (System.currentTimeMillis() / 1000));
+                            remoteRepository.sendErrorCode(0, 0, 0, (System.currentTimeMillis() / 1000));
                         }
                     } else {
                         XLog.tag(TAG).i("打印内容为空");
