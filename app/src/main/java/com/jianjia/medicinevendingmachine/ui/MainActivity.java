@@ -214,7 +214,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             JSONObject jsonObject = (JSONObject) JSON.parse(s);
             String temp = (String) jsonObject.get("temp");
             String hum = (String) jsonObject.get("hum");
-            String tempAndHum = "温度:" + temp + "°C" + "  湿度:" + hum + "%RH";
+            String tempAndHum = "温度:" + temp + "°C" + "    湿度:" + hum + "%RH";
             viewBind.tvTemHum.setText(tempAndHum);
         });
 
