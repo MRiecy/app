@@ -18,8 +18,8 @@ public abstract class DeviceDataBase extends RoomDatabase {
         if (sMyDataBase == null) {
             sMyDataBase = Room.databaseBuilder(context.getApplicationContext(), DeviceDataBase.class, DB_NAME)
                     .createFromAsset("database/goods.db")
-//                    .fallbackToDestructiveMigration()
-                    .addMigrations(MIGRATION_1_2,MIGRATION_2_3)
+                    //.fallbackToDestructiveMigration()
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build();
         }
         return sMyDataBase;

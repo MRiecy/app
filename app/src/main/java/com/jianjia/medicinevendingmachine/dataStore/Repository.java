@@ -381,7 +381,12 @@ public class Repository {
                         int code = deviceManger.printTicks(list);
                         if (code != 0) {
                             remoteRepository.sendErrorCode(code, 0, 0, (System.currentTimeMillis() / 1000));
-                            remoteRepository.sendErrorCode(0, 0, 0, (System.currentTimeMillis() / 1000));
+                            TimerManager.delayedTaskTasksOnSecond(1000, new TimerTask() {
+                                @Override
+                                public void run() {
+                                    remoteRepository.sendErrorCode(0, 0, 0, (System.currentTimeMillis() / 1000));
+                                }
+                            });
                         }
                     } else {
                         XLog.tag(TAG).i("打印内容为空");

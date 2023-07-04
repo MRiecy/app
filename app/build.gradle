@@ -11,8 +11,8 @@ android {
         applicationId "com.jianjia.medicinevendingmachine"
         minSdk 21
         targetSdk 34
-        versionCode 42
-        versionName "1.48"
+        versionCode 43
+        versionName "1.49"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         javaCompileOptions {
@@ -41,8 +41,12 @@ android {
 
     android.applicationVariants.all { variant ->
         variant.outputs.all {
-            variant.outputs.all { output ->
-                outputFileName = "release_jianjia_device_V${variant.versionName}_${buildTime()}.apk"
+            def date = new Date().format("yyyyMMdd" , TimeZone.getTimeZone("GMT+08"))
+            if(variant.buildType.name == 'debug') {
+                outputFileName = "debug_jianjia_device_V${variant.versionName}_${date}.apk"
+            }
+            if(variant.buildType.name == 'release') {
+                outputFileName = "release_jianjia_device_V${variant.versionName}_${date}.apk"
             }
         }
     }
@@ -68,10 +72,4 @@ dependencies {
     annotationProcessor 'androidx.hilt:hilt-compiler:1.0.0'
     implementation 'com.github.547394:SerialPortManager:1.0.12'
     implementation 'com.github.bumptech.glide:glide:4.15.1'
-}
-
-static def buildTime() {
-    def date = new Date()
-    def formattedDate = date.format('yyyyMMdd')
-    return formattedDate
 }
