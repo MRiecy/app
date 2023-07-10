@@ -32,7 +32,6 @@ import java.util.Objects;
 
 public class NetUtils {
     private static final String TAG = "NetUtils";
-    private static long lastRxTx;
     private static ConnectivityManager mConnectivityManager;
     private static ConnectivityManager.NetworkCallback mNetworkCallback;
 
@@ -170,11 +169,11 @@ public class NetUtils {
             InputStream input = p.getInputStream();
             BufferedReader in = new BufferedReader(new InputStreamReader(input));
             StringBuilder stringBuffer = new StringBuilder();
-            String content = "";
+            String content;
             while ((content = in.readLine()) != null) {
                 stringBuffer.append(content);
             }
-            Log.i(TAG, "ping的结果 : " + stringBuffer.toString());
+            Log.i(TAG, "ping的结果 : " + stringBuffer);
             // PING的状态
             int status = p.waitFor();
             p.destroy();

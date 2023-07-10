@@ -300,6 +300,7 @@ public class PrintInfo {
         }
     }
 
+    @NonNull
     @Override
     public String toString() {
         return "PrintInfo{" +

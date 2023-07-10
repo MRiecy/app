@@ -14,7 +14,7 @@ public class AppUtils {
             PackageManager pm = context.getPackageManager();
             PackageInfo pi = pm.getPackageInfo(context.getPackageName(), 0);
             versionName = pi.versionName;
-            if (versionName == null || versionName.length() <= 0) {
+            if (versionName == null || versionName.length() == 0) {
                 return "";
             }
         } catch (Exception e) {

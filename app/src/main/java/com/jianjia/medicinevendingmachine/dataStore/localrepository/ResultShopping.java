@@ -1,5 +1,6 @@
 package com.jianjia.medicinevendingmachine.dataStore.localrepository;
 
+import androidx.annotation.NonNull;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
@@ -60,6 +61,7 @@ public class ResultShopping {
         this.time = time;
     }
 
+    @NonNull
     @Override
     public String toString() {
         return "ResultShopping{" +

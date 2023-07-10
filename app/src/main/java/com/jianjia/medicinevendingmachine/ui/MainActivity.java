@@ -13,13 +13,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
-import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -52,7 +50,7 @@ import dagger.hilt.android.AndroidEntryPoint;
 
 @AndroidEntryPoint
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
-    private String TAG = "MainActivity";
+    private final String TAG = "MainActivity";
     private MainViewModel mainViewModel;
     private ActivityMainBinding viewBind;
     private CountDownTimer mTimer;
@@ -83,32 +81,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         webSettings.setMediaPlaybackRequiresUserGesture(false);
         viewBind.webAdvert.setLayerType(ViewGroup.LAYER_TYPE_HARDWARE, null);
         viewBind.webAdvert.setWebViewClient(new MyWebViewClient());
-        viewBind.btGoodsOut.setOnClickListener(v -> {
-            viewBind.webAdvert.pauseTimers();
-            viewBind.webAdvert.setVisibility(View.GONE);
-            viewBind.btGoodsOut.setVisibility(View.GONE);
-            viewBind.inKeyboard.glKeyboard.setVisibility(View.VISIBLE);
-            mTimer = new CountDownTimer(30000, 1000) {
-                @Override
-                public void onTick(long millisUntilFinished) {
-                    runOnUiThread(() -> {
-                        viewBind.inKeyboard.tvBackTime.setText(" " + millisUntilFinished / 1000 + "s");
-                    });
-                }
-
-                @Override
-                public void onFinish() {
-                    XLog.tag(TAG).i("输入取货码超时");
-                    runOnUiThread(() -> {
-                        viewBind.inKeyboard.glKeyboard.setVisibility(View.GONE);
-                        viewBind.inKeyboard.tvInput.setText("");
-                        viewBind.webAdvert.resumeTimers();
-                        viewBind.webAdvert.setVisibility(View.VISIBLE);
-                        viewBind.btGoodsOut.setVisibility(View.VISIBLE);
-                    });
-                }
-            }.start();
-        });
+        viewBind.btGoodsOut.setOnClickListener(this::onClick2);
         addKeyBoardClickListener();
     }
 
@@ -316,9 +289,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                     viewBind.btGoodsOut.setVisibility(View.VISIBLE);
                                 });
                             } else {
-                                runOnUiThread(() -> {
-                                    changPage(DeviceStateConstant.DEVICE_NO_NET);
-                                });
+                                runOnUiThread(() -> changPage(DeviceStateConstant.DEVICE_NO_NET));
                             }
                         });
                     }
@@ -446,6 +417,34 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         NetUtils.unRegisterNetworkMonitor();
     }
 
+    private void onClick2(View v) {
+        viewBind.webAdvert.pauseTimers();
+        viewBind.webAdvert.setVisibility(View.GONE);
+        viewBind.btGoodsOut.setVisibility(View.GONE);
+        viewBind.inKeyboard.glKeyboard.setVisibility(View.VISIBLE);
+        mTimer = new CountDownTimer(30000, 1000) {
+            private void run() {
+                viewBind.inKeyboard.glKeyboard.setVisibility(View.GONE);
+                viewBind.inKeyboard.tvInput.setText("");
+                viewBind.webAdvert.resumeTimers();
+                viewBind.webAdvert.setVisibility(View.VISIBLE);
+                viewBind.btGoodsOut.setVisibility(View.VISIBLE);
+            }
+
+            @SuppressLint("SetTextI18n")
+            @Override
+            public void onTick(long millisUntilFinished) {
+                runOnUiThread(() -> viewBind.inKeyboard.tvBackTime.setText(" " + millisUntilFinished / 1000 + "s"));
+            }
+
+            @Override
+            public void onFinish() {
+                XLog.tag(TAG).i("输入取货码超时");
+                runOnUiThread(this::run);
+            }
+        }.start();
+    }
+
 
     class MyWebViewClient extends WebViewClient {
         @Override
@@ -460,12 +459,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             if (!view.getSettings().getLoadsImagesAutomatically()) {
                 view.getSettings().setLoadsImagesAutomatically(true);
             }
-        }
-
-        @Nullable
-        @Override
-        public WebResourceResponse shouldInterceptRequest(WebView view, String url) {
-            return super.shouldInterceptRequest(view, url);
         }
 
         @Override

@@ -9,6 +9,7 @@ import static com.jianjia.medicinevendingmachine.dataStore.remoterepository.Sock
 import static com.jianjia.medicinevendingmachine.dataStore.remoterepository.SocketCmdCode.CMD_CODE_UP_DEVICE_MESSAGE;
 import static com.jianjia.medicinevendingmachine.utils.BytesUtils.SubAndBase64Decode;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.text.TextUtils;
 import android.util.Log;
@@ -81,6 +82,7 @@ public class RemoteRepository {
         }
     }
 
+    @SuppressLint("DefaultLocale")
     public void upDeviceMessage(String message) {
         XLog.tag(TAG).i("上传设备信息：" + message);
         if (socketNet != null) {
@@ -103,6 +105,7 @@ public class RemoteRepository {
         }
     }
 
+    @SuppressLint("DefaultLocale")
     public void sendGoodsShoppingResult(@NonNull String orderNum, @NonNull String outStatus,
                                         @NonNull String result, String time) {
         XLog.tag(TAG).i("发送出货结果:" + orderNum + " " + outStatus + " " + result);

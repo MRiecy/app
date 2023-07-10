@@ -156,7 +156,7 @@ public class DeviceSystemManger {
         DecimalFormat df = new DecimalFormat();
         df.setMaximumFractionDigits(2);
         df.setMinimumFractionDigits(2);
-        String percentage = df.format(volume * 100 / 15);
+        String percentage = df.format(volume * 100L / 15);
         String soundPercentage = percentage.substring(0, percentage.length() - 3) + "%";
         XLog.tag(TAG).i("声音百分比：" + soundPercentage);
     }

@@ -1,11 +1,9 @@
 package com.jianjia.medicinevendingmachine.manger;
 
-import android.content.Context;
 import android.util.Log;
 
 import com.elvishew.xlog.XLog;
 import com.tim.serialportlib.OnDataListener;
-import com.tim.serialportlib.OnReportListener;
 
 import java.nio.charset.StandardCharsets;
 
@@ -21,7 +19,7 @@ public class Device {
         this.mAndroidSerialPort = androidSerialPort;
     }
 
-    public void init(Context context) {
+    public void init() {
         XLog.tag(TAG).i("初始化串口");
         mAndroidSerialPort.init(DeviceConstants.SERIAL_PORT_PATH, DeviceConstants.BAUD_RATE);
     }
@@ -40,18 +38,6 @@ public class Device {
         XLog.tag(TAG).i("获取温湿度");
         String tempAndHumCmd = "temp\\r\\n";
         mAndroidSerialPort.sendCmd(tempAndHumCmd.getBytes(StandardCharsets.US_ASCII));
-    }
-
-    public void outGoodsByReturn(double IRC, double iCC, int type, OnReportListener onReportListener) {
-        XLog.tag(TAG).i("出货：" + IRC + "," + iCC + "," + type);
-        String outGoodsCmd = IRC + "," + iCC + "," + type + "\\r\\n";
-        mAndroidSerialPort.sendCmdByReturn(outGoodsCmd.getBytes(StandardCharsets.US_ASCII), onReportListener);
-    }
-
-    public void getTemperatureAndHumidityByReturn(OnReportListener onReportListener) {
-        XLog.tag(TAG).i("获取温湿度");
-        String tempAndHumCmd = "temp\\r\\n";
-        mAndroidSerialPort.sendCmdByReturn(tempAndHumCmd.getBytes(StandardCharsets.US_ASCII), onReportListener);
     }
 
     public void closeDevice() {

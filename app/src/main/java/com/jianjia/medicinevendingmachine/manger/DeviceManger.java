@@ -6,7 +6,6 @@ import android.util.Log;
 import com.elvishew.xlog.XLog;
 import com.jianjia.medicinevendingmachine.dataStore.remoterepository.PrintInfo;
 import com.tim.serialportlib.OnDataListener;
-import com.tim.serialportlib.OnReportListener;
 
 import java.util.List;
 
@@ -15,7 +14,7 @@ import javax.inject.Inject;
 import dagger.hilt.android.qualifiers.ApplicationContext;
 
 public class DeviceManger {
-    private String TAG = "DeviceManger";
+    private final String TAG = "DeviceManger";
     Printer printer;
     QR qr;
     Device device;
@@ -42,7 +41,7 @@ public class DeviceManger {
             deviceSystemManger.daemon(context.getPackageName(), 0);
             deviceSystemManger.selfStart(context.getPackageName());
         });
-        device.init(context);
+        device.init();
         printer.init();
         /*qr.init(context);
         qr.startScan();*/
@@ -128,25 +127,6 @@ public class DeviceManger {
         }
     }
 
-    public void shoppingGoodsByReturn(double IRC, double iCC, int type, OnReportListener onReportListener) {
-        XLog.tag(TAG).i("出货：" + IRC + "," + iCC + "," + type);
-        if (device.isOpenDevice()) {
-            device.outGoodsByReturn(IRC, iCC, type, onReportListener);
-        } else {
-            XLog.tag(TAG).i("串口未打开");
-        }
-    }
-
-    public void getTemperatureAndHumidityByReturn(OnReportListener onReportListener) {
-        XLog.tag(TAG).i("获取温湿度");
-        if (device.isOpenDevice()) {
-            device.getTemperatureAndHumidityByReturn(onReportListener);
-        } else {
-            XLog.tag(TAG).i("串口未打开");
-        }
-    }
-
-
     public void addDeviceDataListener(OnDataListener onDataListener) {
         device.addListener(onDataListener);
     }
@@ -216,12 +196,7 @@ public class DeviceManger {
     }
 
     public void addScanListener() {
-        qr.addDataListener(new QR.ScanBackInterface() {
-            @Override
-            public void onScan(String code) {
-                XLog.tag(TAG).i("扫码结果：" + code);
-            }
-        });
+        qr.addDataListener(code -> XLog.tag(TAG).i("扫码结果：" + code));
     }
 
     public void closeDevice() {

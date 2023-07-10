@@ -21,14 +21,14 @@ import javax.inject.Inject;
 import dagger.hilt.android.qualifiers.ApplicationContext;
 
 public class WorkProcessing {
-    private final String TAG = "WorkProcessing";
     private final WorkManager workManager;
     private final Constraints constraints;
     private OneTimeWorkRequest oneTimeWorkRequest;
 
     @Inject
     public WorkProcessing(@ApplicationContext Context context) {
-        Log.i(TAG, "初始化");
+        String lTAG = "WorkProcessing";
+        Log.i(lTAG, "初始化");
         workManager = WorkManager.getInstance(context);
         constraints = new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build();
     }

@@ -12,9 +12,6 @@ import java.nio.charset.StandardCharsets;
  * 字节处理类
  */
 public class BytesUtils {
-    @NonNull
-    private static String TAG = "BytesUtils";
-
     private BytesUtils() {
     }
 

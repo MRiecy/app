@@ -9,7 +9,7 @@ import com.xuhao.didi.core.iocore.interfaces.ISendable;
  */
 public class Data implements ISendable {
     private String[] content;
-    private byte[] cmdCode;
+    private final byte[] cmdCode;
 
     /**
      * 传入的指令
