@@ -1177,17 +1177,19 @@ public class Repository {
                                 mIsGetTempAndHum = false;
                                 XLog.tag(TAG).i("温湿度返回的数据：" + resultMessage);
                                 String[] tempAndHum = resultMessage.replace("temp:", "").replace("\r\n", "").split(",");
-                                XLog.tag(TAG).i("温度：" + tempAndHum[0] + " " + "湿度：" + tempAndHum[1]);
-                                int lI = Integer.parseInt(tempAndHum[0]);
-                                if (lI > 20) {
-                                    lI = 20;
+                                if (tempAndHum.length > 1) {
+                                    XLog.tag(TAG).i("温度：" + tempAndHum[0] + " " + "湿度：" + tempAndHum[1]);
+                                    int lI = Integer.parseInt(tempAndHum[0]);
+                                    if (lI > 20) {
+                                        lI = 20;
+                                    }
+                                    JSONObject jsonObject = new JSONObject();
+                                    jsonObject.put("temp", lI + "");
+                                    jsonObject.put("hum", tempAndHum[1]);
+                                    String tempAndHumJson = jsonObject.toJSONString();
+                                    mTempAndHumValue.postValue(tempAndHumJson);
+                                    remoteRepository.upTemperatureAndHumidity(tempAndHum[0], tempAndHum[1]);
                                 }
-                                JSONObject jsonObject = new JSONObject();
-                                jsonObject.put("temp", lI + "");
-                                jsonObject.put("hum", tempAndHum[1]);
-                                String tempAndHumJson = jsonObject.toJSONString();
-                                mTempAndHumValue.postValue(tempAndHumJson);
-                                remoteRepository.upTemperatureAndHumidity(tempAndHum[0], tempAndHum[1]);
                             }
                         }
                     });
