@@ -14,7 +14,6 @@ android {
         versionCode 44
         versionName "1.50"
 
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         javaCompileOptions {
             annotationProcessorOptions {
                 arguments = ["room.schemaLocation": "$projectDir/schemas".toString()]
@@ -25,7 +24,7 @@ android {
         }
     }
     buildFeatures {
-        viewBinding = true;
+        viewBinding = true
     }
 
     buildTypes {
@@ -59,7 +58,8 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'com.tonystark.android:socket:4.2.3'
     implementation 'org.xutils:xutils:3.8.12'
-    implementation 'com.alibaba:fastjson:1.2.9'
+    //noinspection DuplicatePlatformClasses
+    implementation 'com.alibaba:fastjson:1.2.75'
     implementation 'com.elvishew:xlog:1.11.0'
     implementation 'com.iqiyi.xcrash:xcrash-android-lib:3.1.0'
     implementation "androidx.room:room-runtime:2.5.1"
