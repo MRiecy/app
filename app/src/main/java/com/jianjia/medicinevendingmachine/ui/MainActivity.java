@@ -101,7 +101,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         viewBind.inKeyboard.tvBack.setOnClickListener(this);
     }
 
-    @SuppressLint({"SetTextI18n", "NonConstantResourceId"})
+    @SuppressLint({"SetTextI18n"})
     @Override
     public void onClick(View v) {
         if (v.getId() == R.id.bt_one) {
