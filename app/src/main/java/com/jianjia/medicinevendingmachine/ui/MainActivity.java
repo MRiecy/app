@@ -104,61 +104,47 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @SuppressLint({"SetTextI18n", "NonConstantResourceId"})
     @Override
     public void onClick(View v) {
-        switch (v.getId()) {
-            case R.id.bt_one:
-                viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "1");
-                break;
-            case R.id.bt_two:
-                viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "2");
-                break;
-            case R.id.bt_three:
-                viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "3");
-                break;
-            case R.id.bt_four:
-                viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "4");
-                break;
-            case R.id.bt_five:
-                viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "5");
-                break;
-            case R.id.bt_six:
-                viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "6");
-                break;
-            case R.id.bt_seven:
-                viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "7");
-                break;
-            case R.id.bt_eight:
-                viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "8");
-                break;
-            case R.id.bt_nine:
-                viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "9");
-                break;
-            case R.id.bt_zero:
-                viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "0");
-                break;
-            case R.id.bt_delete:
-                String pickCode = viewBind.inKeyboard.tvInput.getText().toString();
-                if (pickCode.length() > 0) {
-                    viewBind.inKeyboard.tvInput.setText(pickCode.substring(0, pickCode.length() - 1));
-                }
-                break;
-            case R.id.bt_confirm:
-                String outGoodsCode = viewBind.inKeyboard.tvInput.getText().toString();
-                XLog.tag(TAG).i("取货码是：" + outGoodsCode);
-                if (outGoodsCode.length() == 6) {
-                    mTimer.cancel();
-                    viewBind.inKeyboard.tvInput.setText("");
-                    viewBind.inKeyboard.glKeyboard.setVisibility(View.GONE);
-                    mainViewModel.outGoods(outGoodsCode);
-                }
-                break;
-            case R.id.tv_back:
+        if (v.getId() == R.id.bt_one) {
+            viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "1");
+        } else if (v.getId() == R.id.bt_two) {
+            viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "2");
+        } else if (v.getId() == R.id.bt_three) {
+            viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "3");
+        } else if (v.getId() == R.id.bt_four) {
+            viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "4");
+        } else if (v.getId() == R.id.bt_five) {
+            viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "5");
+        } else if (v.getId() == R.id.bt_six) {
+            viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "6");
+        } else if (v.getId() == R.id.bt_seven) {
+            viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "7");
+        } else if (v.getId() == R.id.bt_eight) {
+            viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "8");
+        } else if (v.getId() == R.id.bt_nine) {
+            viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "9");
+        } else if (v.getId() == R.id.bt_zero) {
+            viewBind.inKeyboard.tvInput.setText(viewBind.inKeyboard.tvInput.getText() + "0");
+        } else if (v.getId() == R.id.bt_delete) {
+            String pickCode = viewBind.inKeyboard.tvInput.getText().toString();
+            if (pickCode.length() > 0) {
+                viewBind.inKeyboard.tvInput.setText(pickCode.substring(0, pickCode.length() - 1));
+            }
+        } else if (v.getId() == R.id.bt_confirm) {
+            String outGoodsCode = viewBind.inKeyboard.tvInput.getText().toString();
+            XLog.tag(TAG).i("取货码是：" + outGoodsCode);
+            if (outGoodsCode.length() == 6) {
                 mTimer.cancel();
-                viewBind.inKeyboard.glKeyboard.setVisibility(View.GONE);
                 viewBind.inKeyboard.tvInput.setText("");
-                viewBind.webAdvert.resumeTimers();
-                viewBind.webAdvert.setVisibility(View.VISIBLE);
-                viewBind.btGoodsOut.setVisibility(View.VISIBLE);
-                break;
+                viewBind.inKeyboard.glKeyboard.setVisibility(View.GONE);
+                mainViewModel.outGoods(outGoodsCode);
+            }
+        } else if (v.getId() == R.id.tv_back) {
+            mTimer.cancel();
+            viewBind.inKeyboard.glKeyboard.setVisibility(View.GONE);
+            viewBind.inKeyboard.tvInput.setText("");
+            viewBind.webAdvert.resumeTimers();
+            viewBind.webAdvert.setVisibility(View.VISIBLE);
+            viewBind.btGoodsOut.setVisibility(View.VISIBLE);
         }
     }
 
