@@ -31,6 +31,7 @@ public class MainViewModel extends AndroidViewModel {
     private final MutableLiveData<String> tempAndHumValue = new MutableLiveData<>();
     private final MutableLiveData<String> deviceNoValue = new MutableLiveData<>();
     private final MutableLiveData<String> qrPath = new MutableLiveData<>();
+    private final MutableLiveData<String> macAddress = new MutableLiveData<>();
     private final MutableLiveData<AdvertMould> mAdvertMouldMutableLiveData = new MutableLiveData<>();
     Repository mRepository;
     WorkProcessing mWorkProcessing;
@@ -66,13 +67,19 @@ public class MainViewModel extends AndroidViewModel {
         return mRepository.getAdvertContent();
     }
 
+    public String getMacAddress() {
+        return macAddress.getValue();
+    }
+
     public void outGoods(String outCode) {
         mRepository.outGoods(outCode);
     }
 
     public void initRepositoryData() {
         mRepository.startLog();
-        mRepository.initViewModelData(deviceState, tempAndHumValue, deviceNoValue, qrPath, mAdvertMouldMutableLiveData);
+        mRepository.initViewModelData(deviceState,
+                tempAndHumValue, deviceNoValue, qrPath,
+                mAdvertMouldMutableLiveData, macAddress);
         mRepository.initDevice();
     }
 

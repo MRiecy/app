@@ -242,7 +242,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 tipsLogo = R.mipmap.successful;
                 break;
             case DeviceStateConstant.DEVICE_UNREGISTERED:
-                tips = "设备未注册,请注册,本设备mac为:\n" + NetUtils.getMacAddress();
+                tips = "设备未注册,请注册,本设备mac为:\n" + mainViewModel.getMacAddress();
                 tipsLogo = R.mipmap.fail;
                 break;
             case DeviceStateConstant.DEVICE_REGISTRATION_FAILED:

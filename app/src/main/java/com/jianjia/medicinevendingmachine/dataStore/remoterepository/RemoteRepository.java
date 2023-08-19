@@ -22,7 +22,6 @@ import com.alibaba.fastjson.JSONObject;
 import com.elvishew.xlog.XLog;
 import com.jianjia.medicinevendingmachine.constants.NetworkConfiguration;
 import com.jianjia.medicinevendingmachine.utils.AppUtils;
-import com.jianjia.medicinevendingmachine.utils.NetUtils;
 import com.jianjia.medicinevendingmachine.utils.TimerManager;
 import com.jianjia.medicinevendingmachine.work.CrashLogWork;
 import com.jianjia.medicinevendingmachine.work.LogWork;
@@ -58,11 +57,12 @@ public class RemoteRepository {
         socketNet.setConnectConfiguration(hostAddress, NetworkConfiguration.PORT).addListener(socketActionAdapter).connect();
     }
 
-    public void signIn() {
-        XLog.tag(TAG).i("设备签到：" + NetUtils.getMacAddress() + " 程序版本：" + AppUtils.getAppVersionName(context));
+    public void signIn(String macAddress) {
+        XLog.tag(TAG).i("设备签到：" + macAddress + " 程序版本：" + AppUtils.getAppVersionName(context));
         if (socketNet != null) {
             socketNet.sendData(CMD_CODE_SYN_TIME, new String[]{String.format("%-10s", "SYNCTIME"), String.format("%-10s", "TSFSERVER")});
-            socketNet.sendData(CMD_CODE_SIGN_IN, new String[]{String.format("%-20s", NetUtils.getMacAddress()),
+            socketNet.sendData(CMD_CODE_SIGN_IN, new String[]{String.format("%-20s", macAddress),
+//            socketNet.sendData(CMD_CODE_SIGN_IN, new String[]{String.format("%-20s", "d4:9c:dd:7c:1c:46"),
                     String.format("%-8s", AppUtils.getAppVersionName(context))
             });
         }
@@ -151,8 +151,8 @@ public class RemoteRepository {
         mHttpUtils.getAppDownloadInfo(deviceNO, macAddress, callback);
     }
 
-    public void getDeviceNewExtendedInformation(String deviceNo, Callback.CommonCallback<String> callback) {
-        mHttpUtils.getDeviceNewExtendedInformation(deviceNo, NetUtils.getMacAddress(), callback);
+    public void getDeviceNewExtendedInformation(String deviceNo, String macAddress, Callback.CommonCallback<String> callback) {
+        mHttpUtils.getDeviceNewExtendedInformation(deviceNo, macAddress, callback);
     }
 
     public void downLoadApk(String url, String filePath, Callback.CommonCallback<File> callback) {

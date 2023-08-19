@@ -94,13 +94,13 @@ public class Repository {
     private final LocalRepository localRepository;
     private final DeviceManger deviceManger;
     private final RemoteRepository remoteRepository;
-    private int deviceState = DeviceStateConstant.DEVICE_NORMAL, outNo = 0, failCount = 0, orderState = 0, packageNo = 1, downLoadCount = 0;
     private final int packageCount = 2;
     private final Context context;
+    private int deviceState = DeviceStateConstant.DEVICE_NORMAL, outNo = 0, failCount = 0, orderState = 0, packageNo = 1, downLoadCount = 0;
     private String deviceNO;
     private boolean isOutPackage = false, mIsGetTempAndHum = false;
     private MutableLiveData<Integer> mDeviceState;
-    private MutableLiveData<String> mTempAndHumValue, mQrPath, mDeviceNo;
+    private MutableLiveData<String> mTempAndHumValue, mQrPath, mDeviceNo, mMacAddress;
     private MutableLiveData<AdvertMould> mAdvertMouldMutableLiveData;
     private Timer mOutGoodsTimer, mOutPackageTimer, mSendTimeOutTimer, mGetTempTimer;
 
@@ -130,7 +130,7 @@ public class Repository {
             @Override
             public void onSocketConnectionSuccess(ConnectionInfo info, String action) {
                 XLog.tag(TAG).i("onSocketConnectionSuccess:" + info.getIp() + " " + action);
-                remoteRepository.signIn();
+                remoteRepository.signIn(deviceManger.getMacAddress());
             }
 
             //连接失败回调
@@ -229,7 +229,9 @@ public class Repository {
                             upDataConfig();
                             break;
                         case "-1":
-                            XLog.tag(TAG).i("设备未注册,请注册,本设备mac为:\n" + NetUtils.getMacAddress());
+                            String macAddress = deviceManger.getMacAddress();
+                            XLog.tag(TAG).i("设备未注册,请注册,本设备mac为:\n" + macAddress);
+                            mMacAddress.postValue(macAddress);
                             mDeviceState.postValue(DeviceStateConstant.DEVICE_UNREGISTERED);
                             break;
                         case "2":
@@ -462,12 +464,16 @@ public class Repository {
         deviceManger.initLog();
     }
 
-    public void initViewModelData(MutableLiveData<Integer> deviceStates, MutableLiveData<String> tempAndHumValue, MutableLiveData<String> deviceNoValue, MutableLiveData<String> qrPath, MutableLiveData<AdvertMould> advertMouldMutableLiveData) {
+    public void initViewModelData(MutableLiveData<Integer> deviceStates, MutableLiveData<String> tempAndHumValue,
+                                  MutableLiveData<String> deviceNoValue, MutableLiveData<String> qrPath,
+                                  MutableLiveData<AdvertMould> advertMouldMutableLiveData,
+                                  MutableLiveData<String> macAddress) {
         this.mDeviceNo = deviceNoValue;
         this.mDeviceState = deviceStates;
         this.mTempAndHumValue = tempAndHumValue;
         this.mQrPath = qrPath;
         this.mAdvertMouldMutableLiveData = advertMouldMutableLiveData;
+        this.mMacAddress = macAddress;
         getAdvertMouldByLiveData();
     }
 
@@ -620,7 +626,7 @@ public class Repository {
     }
 
     private void getAppInfo() {
-        remoteRepository.getNewAppInfo(deviceNO, NetUtils.getMacAddress(), new Callback.CommonCallback<>() {
+        remoteRepository.getNewAppInfo(deviceNO, deviceManger.getMacAddress(), new Callback.CommonCallback<>() {
             @Override
             public void onSuccess(String result) {
                 XLog.tag(TAG).i("app更新信息" + result);
@@ -710,7 +716,7 @@ public class Repository {
     }
 
     private void getDeviceExtendedInformation() {
-        remoteRepository.getDeviceNewExtendedInformation(deviceNO, new Callback.CommonCallback<>() {
+        remoteRepository.getDeviceNewExtendedInformation(deviceNO, deviceManger.getMacAddress(), new Callback.CommonCallback<>() {
             @Override
             public void onSuccess(String result) {
                 XLog.tag(TAG).i("通过后台获取新广告信息:" + result);

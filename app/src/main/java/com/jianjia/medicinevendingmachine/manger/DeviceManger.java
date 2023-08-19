@@ -79,6 +79,15 @@ public class DeviceManger {
         }
     }
 
+    public String getMacAddress() {
+        if (isInit) {
+            return deviceSystemManger.getMacAddress();
+        } else {
+            XLog.tag(TAG).i("系统服务未连接");
+            return null;
+        }
+    }
+
     public boolean silentInstallApk(String apkPath) {
         if (isInit) {
             XLog.tag(TAG).i("静默安装程序：" + apkPath);

@@ -7,6 +7,7 @@ import android.util.Log;
 import com.elvishew.xlog.XLog;
 import com.jianjia.medicinevendingmachine.log.CrashLogManger;
 import com.jianjia.medicinevendingmachine.log.LogManger;
+import com.jianjia.medicinevendingmachine.utils.NetUtils;
 import com.jianjia.medicinevendingmachine.utils.VolumeUtils;
 import com.ys.rkapi.MyManager;
 
@@ -128,6 +129,15 @@ public class DeviceSystemManger {
 
     public boolean isAutoSyncTime() {
         return mMyManager.isAutoSyncTime();
+    }
+
+
+    public String getMacAddress() {
+        String macAddress = NetUtils.getMacAddress();
+        if (macAddress == null) {
+            return mMyManager.getEthMacAddress();
+        }
+        return macAddress;
     }
 
     public void selfStart(String packageName) {
