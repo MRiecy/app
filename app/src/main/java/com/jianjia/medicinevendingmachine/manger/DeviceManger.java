@@ -4,8 +4,8 @@ import android.content.Context;
 import android.util.Log;
 
 import com.elvishew.xlog.XLog;
+import com.jc.serialportmanger.OnDataListener;
 import com.jianjia.medicinevendingmachine.dataStore.remoterepository.PrintInfo;
-import com.tim.serialportlib.OnDataListener;
 
 import java.util.List;
 

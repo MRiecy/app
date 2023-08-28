@@ -378,8 +378,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 if (mIsFirst) {
                     if (NetUtils.ping()) {
                         mIsFirst = false;
-                        mainViewModel.initNet(MainActivity.this);
                         NetUtils.getNetSignal(MainActivity.this);
+                        mainViewModel.initNet(MainActivity.this);
                     } else {
                         runOnUiThread(() -> changPage(DeviceStateConstant.DEVICE_NO_NET));
                     }
@@ -404,6 +404,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void onClick2(View v) {
+        XLog.tag(TAG).i("取药");
         viewBind.webAdvert.pauseTimers();
         viewBind.webAdvert.setVisibility(View.GONE);
         viewBind.btGoodsOut.setVisibility(View.GONE);

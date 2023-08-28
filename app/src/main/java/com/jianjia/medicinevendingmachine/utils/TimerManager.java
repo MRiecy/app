@@ -3,8 +3,10 @@ package com.jianjia.medicinevendingmachine.utils;
 
 import androidx.annotation.NonNull;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -14,6 +16,8 @@ public class TimerManager {
     public static final long TIMEOUT_DETECTION_TIME = 60 * 1000;
     public static final long TEMPERATURE_HUMIDITY_TIME = 60 * 1000;
     public static final long DELAY_UP_APP = 60 * 1000;
+
+    private static List<Timer> mTimers = new ArrayList<>();
 
     private TimerManager() {
     }
@@ -39,6 +43,7 @@ public class TimerManager {
             date = addPeriodTime(date);
         }
         Timer timer = new Timer();
+        mTimers.add(timer);
         //安排指定的任务在指定的时间开始进行重复的固定延迟执行。
         timer.schedule(timerTask, date, period);
     }
@@ -51,6 +56,7 @@ public class TimerManager {
      */
     public static void scheduledTasksOnSecond(long period, TimerTask timerTask) {
         Timer timer = new Timer();
+        mTimers.add(timer);
         //安排指定的任务在指定的时间开始进行重复的固定延迟执行。
         timer.schedule(timerTask, 0, period);
     }
@@ -64,6 +70,7 @@ public class TimerManager {
      */
     public static void scheduledAndDelayTasksOnSecond(long delay, long period, TimerTask timerTask) {
         Timer timer = new Timer();
+        mTimers.add(timer);
         //安排指定的任务在指定的时间开始进行重复的固定延迟执行。
         timer.schedule(timerTask, delay, period);
     }
@@ -76,6 +83,7 @@ public class TimerManager {
      */
     public static void delayedTaskTasksOnSecond(long delay, TimerTask timerTask) {
         Timer timer = new Timer();
+        mTimers.add(timer);
         //安排指定的任务在指定的时间开始进行重复的固定延迟执行。
         timer.schedule(timerTask, delay);
     }
@@ -87,5 +95,13 @@ public class TimerManager {
         startDT.setTime(date);
         startDT.add(Calendar.DAY_OF_MONTH, 1);
         return startDT.getTime();
+    }
+
+    public static void cancelTimer() {
+        if (mTimers != null && mTimers.size() > 0) {
+            for (Timer lMTimer : mTimers) {
+                lMTimer.cancel();
+            }
+        }
     }
 }
