@@ -103,7 +103,7 @@ public class Repository {
     private MutableLiveData<Integer> mDeviceState;
     private MutableLiveData<String> mTempAndHumValue, mQrPath, mDeviceNo, mMacAddress;
     private MutableLiveData<AdvertMould> mAdvertMouldMutableLiveData;
-    private Timer mGetOrderTimeOutTimer;
+    private Timer mGetOrderTimeOutTimer, mTimer;
 
     @Inject
     public Repository(@ApplicationContext Context context, LocalRepository localRepository, DeviceManger deviceManger, RemoteRepository remoteRepository) {
@@ -140,28 +140,36 @@ public class Repository {
             public void onSocketConnectionFailed(ConnectionInfo info, String action, @NonNull Exception e) {
                 super.onSocketConnectionFailed(info, action, e);
                 XLog.tag(TAG).i("onSocketConnectionFailed:" + action + " " + e.getMessage());
-                if (e.getMessage() != null && e.getMessage().contains("Network is unreachable") && deviceState == DeviceStateConstant.DEVICE_NORMAL) {
-                    mDeviceState.postValue(DeviceStateConstant.DEVICE_NO_NET);
-                    new Timer().schedule(new TimerTask() {
-                        @Override
-                        public void run() {
-                            SystemRebootTimes lSystemRebootTimes = localRepository.getSystemRebootTimes();
-                            if (lSystemRebootTimes == null) {
-                                localRepository.updateAndInsertSystemRebootTimes(new SystemRebootTimes(1, 1));
-                                XLog.tag(TAG).i("初次重启");
-                                deviceManger.reboot();
-                                System.exit(0);
-                            } else {
-                                int lSystemRebootTimes1 = lSystemRebootTimes.getSystemRebootTimes();
-                                if (lSystemRebootTimes1 < 2) {
-                                    XLog.tag(TAG).i("重启:" + lSystemRebootTimes1);
-                                    localRepository.updateAndInsertSystemRebootTimes(new SystemRebootTimes(1, lSystemRebootTimes1 + 1));
-                                    deviceManger.reboot();
-                                    System.exit(0);
-                                }
+                if (e.getMessage() != null) {
+                    if (e.getMessage().contains("Network is unreachable") | e.getMessage().contains("connect timed out")) {
+                        if (deviceState == DeviceStateConstant.DEVICE_NORMAL) {
+                            mDeviceState.postValue(DeviceStateConstant.DEVICE_NO_NET);
+                            if (mTimer != null) {
+                                mTimer.cancel();
                             }
+                            mTimer = new Timer();
+                            mTimer.schedule(new TimerTask() {
+                                @Override
+                                public void run() {
+                                    SystemRebootTimes lSystemRebootTimes = localRepository.getSystemRebootTimes();
+                                    if (lSystemRebootTimes == null) {
+                                        localRepository.updateAndInsertSystemRebootTimes(new SystemRebootTimes(1, 1));
+                                        XLog.tag(TAG).i("初次重启");
+                                        deviceManger.reboot();
+                                        System.exit(0);
+                                    } else {
+                                        int lSystemRebootTimes1 = lSystemRebootTimes.getSystemRebootTimes();
+                                        if (lSystemRebootTimes1 < 2) {
+                                            XLog.tag(TAG).i("重启:" + lSystemRebootTimes1);
+                                            localRepository.updateAndInsertSystemRebootTimes(new SystemRebootTimes(1, lSystemRebootTimes1 + 1));
+                                            deviceManger.reboot();
+                                            System.exit(0);
+                                        }
+                                    }
+                                }
+                            }, 5000);
                         }
-                    }, 15000);
+                    }
                 }
             }
 
@@ -184,7 +192,8 @@ public class Repository {
 
             //发送给服务器回调
             @Override
-            public void onSocketWriteResponse(ConnectionInfo info, String action, @NonNull ISendable data) {
+            public void onSocketWriteResponse(ConnectionInfo info, String action, @NonNull ISendable
+                    data) {
                 super.onSocketWriteResponse(info, action, data);
                 String mCode = String.format("%02x", data.parse()[8]);
                 XLog.tag(TAG).i("onSocketWriteResponse：" + mCode + action + "-- 数据：" + bytesToHexString(data.parse()));
@@ -193,7 +202,8 @@ public class Repository {
             //接受服务器数据回调
             @SuppressLint("NewApi")
             @Override
-            public void onSocketReadResponse(ConnectionInfo info, String action, @NonNull OriginalData data) {
+            public void onSocketReadResponse(ConnectionInfo info, String action, @NonNull OriginalData
+                    data) {
                 XLog.tag(TAG).i("onSocketReadResponse：" + String.format("%02x", data.getHeadBytes()[8]) + "-- 数据：头：" + bytesToHexString(data.getHeadBytes()) + "包体：" + bytesToHexString(data.getBodyBytes()));
                 ByteBuffer bb = ByteBuffer.allocate(data.getHeadBytes().length + data.getBodyBytes().length);
                 bb.order(ByteOrder.BIG_ENDIAN);

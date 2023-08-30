@@ -4,8 +4,6 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
-import android.net.ConnectivityManager;
-import android.net.Network;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.util.Log;
@@ -54,7 +52,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private MainViewModel mainViewModel;
     private ActivityMainBinding viewBind;
     private CountDownTimer mTimer;
-    private boolean mIsFirst = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -259,29 +256,31 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         switch (deviceState) {
             case DeviceStateConstant.DEVICE_NO_ORDER:
             case DeviceStateConstant.DEVICE_ORDER_ERROR:
+            case DeviceStateConstant.DEVICE_ORDER_GET_TIME_OUT:
             case DeviceStateConstant.DEVICE_OUT_GOODS_FAIL:
             case DeviceStateConstant.DEVICE_OUT_GOODS_PART_FAIL:
             case DeviceStateConstant.DEVICE_OUT_GOODS_SUCCESSFUL:
-            case DeviceStateConstant.DEVICE_ORDER_GET_TIME_OUT:
                 new Timer().schedule(new TimerTask() {
                     @Override
                     public void run() {
                         ThreadPoolUtils.getInstance().doThings(() -> {
-                            if (NetUtils.ping()) {
-                                runOnUiThread(() -> {
-                                    viewBind.llTips.setVisibility(View.GONE);
-                                    viewBind.webAdvert.resumeTimers();
-                                    viewBind.webAdvert.setVisibility(View.VISIBLE);
-                                    viewBind.btGoodsOut.setVisibility(View.VISIBLE);
-                                });
-                            } else {
-                                runOnUiThread(() -> changPage(DeviceStateConstant.DEVICE_NO_NET));
-                            }
+                            runOnUiThread(() -> {
+                                viewBind.llTips.setVisibility(View.GONE);
+                                viewBind.webAdvert.resumeTimers();
+                                viewBind.webAdvert.setVisibility(View.VISIBLE);
+                                viewBind.btGoodsOut.setVisibility(View.VISIBLE);
+                            });
                         });
                     }
                 }, 10000);
                 break;
             case DeviceStateConstant.DEVICE_NO_NET:
+                viewBind.llQr.setVisibility(View.GONE);
+                viewBind.btGoodsOut.setVisibility(View.GONE);
+                viewBind.webAdvert.pauseTimers();
+                viewBind.webAdvert.setVisibility(View.GONE);
+                viewBind.llTips.setVisibility(View.VISIBLE);
+                break;
             case DeviceStateConstant.DEVICE_REGISTRATION_FAILED:
             case DeviceStateConstant.DEVICE_UNREGISTERED:
             case DeviceStateConstant.DEVICE_PROCESSING:
@@ -292,12 +291,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 viewBind.llTips.setVisibility(View.VISIBLE);
                 break;
             case DeviceStateConstant.DEVICE_NORMAL:
+                viewBind.llQr.setVisibility(View.VISIBLE);
                 viewBind.llTips.setVisibility(View.GONE);
                 viewBind.webAdvert.resumeTimers();
                 viewBind.webAdvert.setVisibility(View.VISIBLE);
                 viewBind.btGoodsOut.setVisibility(View.VISIBLE);
                 break;
-
         }
     }
 
@@ -368,32 +367,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 XLog.tag(TAG).i("无网络");
                 runOnUiThread(() -> changPage(DeviceStateConstant.DEVICE_NO_NET));
             }
-        });
-        XLog.tag(TAG).i("监听网络状态");
-        NetUtils.registerNetworkMonitor(this, new ConnectivityManager.NetworkCallback() {
-            @Override
-            public void onAvailable(@NonNull Network network) {
-                super.onAvailable(network);
-                XLog.tag(TAG).i("网络连接");
-                if (mIsFirst) {
-                    if (NetUtils.ping()) {
-                        mIsFirst = false;
-                        NetUtils.getNetSignal(MainActivity.this);
-                        mainViewModel.initNet(MainActivity.this);
-                    } else {
-                        runOnUiThread(() -> changPage(DeviceStateConstant.DEVICE_NO_NET));
-                    }
-                }
-            }
-
-            @Override
-            public void onLost(@NonNull Network network) {
-                super.onLost(network);
-                XLog.tag(TAG).i("网络断开");
-                if (mIsFirst) {
-                    runOnUiThread(() -> changPage(DeviceStateConstant.DEVICE_NO_NET));
-                }
-            }
+            NetUtils.getNetSignal(MainActivity.this);
+            mainViewModel.initNet(MainActivity.this);
         });
     }
 

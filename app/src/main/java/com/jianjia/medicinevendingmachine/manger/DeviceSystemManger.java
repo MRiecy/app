@@ -134,8 +134,11 @@ public class DeviceSystemManger {
 
     public String getMacAddress() {
         String macAddress = NetUtils.getMacAddress();
+        XLog.tag(TAG).i("Mac1地址：" + macAddress);
         if (macAddress == null) {
-            return mMyManager.getEthMacAddress();
+            String lEthMacAddress = mMyManager.getEthMacAddress();
+            XLog.tag(TAG).i("Mac2地址：" + lEthMacAddress);
+            return lEthMacAddress;
         }
         return macAddress;
     }

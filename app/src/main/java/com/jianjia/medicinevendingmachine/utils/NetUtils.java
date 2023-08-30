@@ -87,50 +87,68 @@ public class NetUtils {
 
     public static void getNetSignal(Context context) {
         Log.i(TAG, "信号检测");
-        String lS = netType(context);
-        if (lS.equals("WIFI")) {
-            checkWifiState(context);
-        } else if (lS.equals("MOBILE")) {
-            checkMobileState(context);
-        } else {
-            Log.i(TAG, "信号检测：" + lS);
-        }
+        // String lS = netType(context);
+        //  if (lS.equals("WIFI")) {
+        checkWifiState(context);
+        //  } else if (lS.equals("MOBILE")) {
+        checkMobileState(context);
+        //   } else {
+        //      Log.i(TAG, "信号检测：" + lS);
+        // }
     }
+
+    private static boolean hasSimCard(Context context) {
+        TelephonyManager telMgr = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+        int simState = telMgr.getSimState();
+        boolean result = true;
+        switch (simState) {
+            case TelephonyManager.SIM_STATE_ABSENT:
+            case TelephonyManager.SIM_STATE_UNKNOWN:
+                result = false; // 没有SIM卡
+                break;
+        }
+        return result;
+    }
+
 
     private static void checkMobileState(Context context) {
         TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(TELEPHONY_SERVICE);
         //通过 listen 方法来侦听电话信息的改变，这里用来侦听网络信号的强度变化，具体还能侦听什么需要看 PhoneStateListener 类的源码
-        if (telephonyManager != null) {
-            telephonyManager.listen(new PhoneStateListener() {
-                @Override
-                public void onServiceStateChanged(ServiceState serviceState) {
-                    super.onServiceStateChanged(serviceState);
-                }
-
-                @Override
-                public void onSignalStrengthsChanged(SignalStrength signalStrength) {
-                    super.onSignalStrengthsChanged(signalStrength);
-                    XLog.tag(TAG).i("信号信息:" + signalStrength);
-                    int lSignalStrength = signalStrength.getGsmSignalStrength();
-                    XLog.tag(TAG).i("gsm信号强度:" + lSignalStrength);
-                    if (lSignalStrength == 99) {
-                        XLog.tag(TAG).i("天线可能没插或损坏，没信号");
-                    } else if (lSignalStrength >= 5 && lSignalStrength < 8) {
-                        XLog.tag(TAG).i("信号差");
-                    } else if (lSignalStrength >= 8 && lSignalStrength < 12) {
-                        XLog.tag(TAG).i("信号比较好");
-                    } else if (lSignalStrength >= 12) {
-                        XLog.tag(TAG).i("信号很好");
-                    } else {
-                        XLog.tag(TAG).i("信号差");
+        if (hasSimCard(context)) {
+            if (telephonyManager != null) {
+                telephonyManager.listen(new PhoneStateListener() {
+                    @Override
+                    public void onServiceStateChanged(ServiceState serviceState) {
+                        super.onServiceStateChanged(serviceState);
                     }
-                }
 
-                @Override
-                public void onDataConnectionStateChanged(int state, int networkType) {
-                    super.onDataConnectionStateChanged(state, networkType);
-                }
-            }, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS);
+                    @Override
+                    public void onSignalStrengthsChanged(SignalStrength signalStrength) {
+                        super.onSignalStrengthsChanged(signalStrength);
+                        XLog.tag(TAG).i("信号信息:" + signalStrength);
+                        int lSignalStrength = signalStrength.getGsmSignalStrength();
+                        XLog.tag(TAG).i("gsm信号强度:" + lSignalStrength);
+                        if (lSignalStrength == 99) {
+                            XLog.tag(TAG).i("天线可能没插或损坏，没信号");
+                        } else if (lSignalStrength >= 5 && lSignalStrength < 8) {
+                            XLog.tag(TAG).i("信号差");
+                        } else if (lSignalStrength >= 8 && lSignalStrength < 12) {
+                            XLog.tag(TAG).i("信号比较好");
+                        } else if (lSignalStrength >= 12) {
+                            XLog.tag(TAG).i("信号很好");
+                        } else {
+                            XLog.tag(TAG).i("信号差");
+                        }
+                    }
+
+                    @Override
+                    public void onDataConnectionStateChanged(int state, int networkType) {
+                        super.onDataConnectionStateChanged(state, networkType);
+                    }
+                }, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS);
+            }
+        } else {
+            XLog.tag(TAG).i("没有sim卡");
         }
     }
 
@@ -205,6 +223,8 @@ public class NetUtils {
             XLog.tag(TAG).i("wifi信号较弱");
         } else if (wifi > -100 && wifi < -80) {//微弱
             XLog.tag(TAG).i("wifi信号微弱");
+        } else {
+            XLog.tag(TAG).i("wifi没有信号");
         }
     }
 
