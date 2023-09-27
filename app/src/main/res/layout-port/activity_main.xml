@@ -159,9 +159,21 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:gravity="start"
+            android:text="药师电话:1850 7256 002\n                 1898 6479 309"
+            android:textColor="@color/white"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
             android:layout_alignParentBottom="true"
-            android:text="服务热线 1858 0629 790"
+            android:gravity="start"
+            android:text="服务热线:400 883 7598"
             android:textColor="@color/white"
             android:textSize="28sp"
             android:textStyle="bold"

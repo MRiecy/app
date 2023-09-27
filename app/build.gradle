@@ -4,6 +4,20 @@ plugins {
 }
 
 android {
+    signingConfigs {
+        debug {
+            storeFile file('D:\\MedicineVendingMachine\\app\\key\\androidkey.jks')
+            storePassword 'android123'
+            keyPassword 'android123'
+            keyAlias 'androidkey'
+        }
+        release {
+            storeFile file('D:\\MedicineVendingMachine\\app\\key\\androidkey.jks')
+            keyAlias 'androidkey'
+            storePassword 'android123'
+            keyPassword 'android123'
+        }
+    }
     namespace 'com.jianjia.medicinevendingmachine'
     compileSdk 33
 
@@ -11,8 +25,8 @@ android {
         applicationId "com.jianjia.medicinevendingmachine"
         minSdk 21
         targetSdk 33
-        versionCode 47
-        versionName "1.52"
+        versionCode 49
+        versionName "1.55"
 
         javaCompileOptions {
             annotationProcessorOptions {

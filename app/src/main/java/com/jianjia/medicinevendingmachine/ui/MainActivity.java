@@ -2,10 +2,16 @@ package com.jianjia.medicinevendingmachine.ui;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.telephony.PhoneStateListener;
+import android.telephony.SignalStrength;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -367,9 +373,62 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 XLog.tag(TAG).i("无网络");
                 runOnUiThread(() -> changPage(DeviceStateConstant.DEVICE_NO_NET));
             }
-            NetUtils.getNetSignal(MainActivity.this);
             mainViewModel.initNet(MainActivity.this);
         });
+        checkWifiState();
+        checkMobileState();
+    }
+
+    private void checkMobileState() {
+        TelephonyManager telephonyManager = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
+        if (telephonyManager != null) {
+            telephonyManager.listen(new PhoneStateListener() {
+                @Override
+                public void onSignalStrengthsChanged(SignalStrength signalStrength) {
+                    super.onSignalStrengthsChanged(signalStrength);
+                    int lSignalStrength = signalStrength.getGsmSignalStrength();
+                    XLog.tag(TAG).i("gsm信号强度:" + lSignalStrength);
+                    if (NetUtils.isNetConnected(MainActivity.this) && NetUtils.netType(MainActivity.this).equals("MOBILE")) {
+                        if (lSignalStrength == 99) {
+                            XLog.tag(TAG).i("天线可能没插或损坏，没信号");
+                        } else if (lSignalStrength >= 5 && lSignalStrength < 8) {
+                            XLog.tag(TAG).i("信号差");
+                        } else if (lSignalStrength >= 8 && lSignalStrength < 12) {
+                            XLog.tag(TAG).i("信号比较好");
+                        } else if (lSignalStrength >= 12) {
+                            XLog.tag(TAG).i("信号很好");
+                        } else {
+                            XLog.tag(TAG).i("信号差");
+                        }
+                    }
+                }
+            }, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS);
+        }
+    }
+
+    private void checkWifiState() {
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                WifiManager mWifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+                WifiInfo mWifiInfo = mWifiManager.getConnectionInfo();
+                if (NetUtils.isNetConnected(MainActivity.this) && NetUtils.netType(MainActivity.this).equals("WIFI")) {
+                    int wifi = mWifiInfo.getRssi();//获取wifi信号强度
+                    XLog.tag(TAG).i("wifi信号强度：" + wifi);
+                    if (wifi > -50 && wifi < 0) {//最强
+                        XLog.tag(TAG).i("wifi信号最强");
+                    } else if (wifi > -70 && wifi < -50) {//较强
+                        XLog.tag(TAG).i("wifi信号较强");
+                    } else if (wifi > -80 && wifi < -70) {//较弱
+                        XLog.tag(TAG).i("wifi信号较弱");
+                    } else if (wifi > -100 && wifi < -80) {//微弱
+                        XLog.tag(TAG).i("wifi信号微弱");
+                    } else {
+                        XLog.tag(TAG).i("wifi没有信号");
+                    }
+                }
+            }
+        }, 1000, 10000);
     }
 
     @Override
