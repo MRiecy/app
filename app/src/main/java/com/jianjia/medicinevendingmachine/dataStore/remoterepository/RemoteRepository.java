@@ -46,7 +46,6 @@ public class RemoteRepository {
 
     @Inject
     public RemoteRepository(@ApplicationContext Context context, SocketNet socketNet, HttpUtils httpUtils, WorkProcessing workProcessing) {
-        Log.i(TAG, "初始化");
         this.context = context;
         this.socketNet = socketNet;
         this.workProcessing = workProcessing;

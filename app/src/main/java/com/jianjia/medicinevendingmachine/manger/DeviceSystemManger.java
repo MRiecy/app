@@ -2,7 +2,6 @@ package com.jianjia.medicinevendingmachine.manger;
 
 import android.content.Context;
 import android.media.AudioManager;
-import android.util.Log;
 
 import com.elvishew.xlog.XLog;
 import com.jianjia.medicinevendingmachine.log.CrashLogManger;
@@ -30,7 +29,6 @@ public class DeviceSystemManger {
 
     @Inject
     public DeviceSystemManger(@ApplicationContext Context context, LogManger logManger, CrashLogManger crashLogManger) {
-        Log.i(TAG, "初始化");
         this.context = context;
         this.logManger = logManger;
         this.crashLogManger = crashLogManger;

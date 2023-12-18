@@ -25,7 +25,6 @@ public class SocketNet {
 
     @Inject
     public SocketNet() {
-        Log.i(TAG, "初始化");
     }
 
     @NonNull

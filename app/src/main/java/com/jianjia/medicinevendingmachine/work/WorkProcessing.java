@@ -1,7 +1,6 @@
 package com.jianjia.medicinevendingmachine.work;
 
 import android.content.Context;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.LifecycleOwner;
@@ -28,7 +27,6 @@ public class WorkProcessing {
     @Inject
     public WorkProcessing(@ApplicationContext Context context) {
         String lTAG = "WorkProcessing";
-        Log.i(lTAG, "初始化");
         workManager = WorkManager.getInstance(context);
         constraints = new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build();
     }

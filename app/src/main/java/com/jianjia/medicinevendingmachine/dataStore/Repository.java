@@ -107,7 +107,6 @@ public class Repository {
 
     @Inject
     public Repository(@ApplicationContext Context context, LocalRepository localRepository, DeviceManger deviceManger, RemoteRepository remoteRepository) {
-        Log.i(TAG, "初始化");
         this.context = context;
         this.localRepository = localRepository;
         this.deviceManger = deviceManger;

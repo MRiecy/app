@@ -33,7 +33,6 @@ public class QR {
 
     @Inject
     public QR() {
-        Log.i(TAG,"初始化");
     }
 
     public void init(Context context) {

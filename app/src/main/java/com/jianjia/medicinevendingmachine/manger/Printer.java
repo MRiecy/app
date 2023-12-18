@@ -1,7 +1,6 @@
 package com.jianjia.medicinevendingmachine.manger;
 
 import android.content.Context;
-import android.util.Log;
 
 import com.elvishew.xlog.XLog;
 import com.szsicod.print.escpos.PrinterAPI;
@@ -20,7 +19,6 @@ public class Printer {
 
     @Inject
     public Printer(@ApplicationContext Context context) {
-        Log.i(TAG, "初始化");
         this.mContext = context;
     }
 

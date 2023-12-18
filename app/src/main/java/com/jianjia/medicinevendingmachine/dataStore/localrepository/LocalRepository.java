@@ -23,7 +23,6 @@ public class LocalRepository {
 
     @Inject
     public LocalRepository(@ApplicationContext Context context) {
-        Log.i(TAG, "初始化");
         mDeviceDao = DeviceDataBase.getInstance(context).getDeviceDao();
     }
 

@@ -1,7 +1,6 @@
 package com.jianjia.medicinevendingmachine.manger;
 
 import android.content.Context;
-import android.util.Log;
 
 import com.elvishew.xlog.XLog;
 import com.jc.serialportmanger.OnDataListener;
@@ -24,7 +23,6 @@ public class DeviceManger {
 
     @Inject
     public DeviceManger(@ApplicationContext Context context, DeviceSystemManger deviceSystemManger, Device device, Printer printer, QR qr) {
-        Log.i(TAG, "初始化");
         this.context = context;
         this.deviceSystemManger = deviceSystemManger;
         this.device = device;

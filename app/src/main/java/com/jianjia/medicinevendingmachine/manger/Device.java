@@ -1,7 +1,5 @@
 package com.jianjia.medicinevendingmachine.manger;
 
-import android.util.Log;
-
 import com.elvishew.xlog.XLog;
 import com.jc.serialportmanger.OnDataListener;
 import com.jc.serialportmanger.OnOpenSerialPortListener;
@@ -17,7 +15,6 @@ public class Device {
 
     @Inject
     public Device() {
-        Log.i(TAG, "初始化");
         mSerialPortManger = SerialPortManger.getInstance();
     }
 
