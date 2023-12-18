@@ -12,7 +12,6 @@ import static com.jianjia.medicinevendingmachine.utils.BytesUtils.SubAndBase64De
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.text.TextUtils;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.work.Data;

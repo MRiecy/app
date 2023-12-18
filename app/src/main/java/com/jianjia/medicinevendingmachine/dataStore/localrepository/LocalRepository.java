@@ -2,7 +2,6 @@ package com.jianjia.medicinevendingmachine.dataStore.localrepository;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.util.Log;
 
 import com.elvishew.xlog.XLog;
 

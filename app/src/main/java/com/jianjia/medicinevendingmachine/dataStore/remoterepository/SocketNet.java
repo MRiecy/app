@@ -1,7 +1,5 @@
 package com.jianjia.medicinevendingmachine.dataStore.remoterepository;
 
-import android.util.Log;
-
 import androidx.annotation.NonNull;
 
 import com.elvishew.xlog.XLog;
