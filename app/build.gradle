@@ -25,8 +25,8 @@ android {
         applicationId "com.jianjia.medicinevendingmachine"
         minSdk 21
         targetSdk 33
-        versionCode 49
-        versionName "1.55"
+        versionCode 60
+        versionName "2.0"
 
         javaCompileOptions {
             annotationProcessorOptions {
@@ -62,10 +62,10 @@ android {
         variant.outputs.configureEach {
             def date = new Date().format("yyyyMMdd", TimeZone.getTimeZone("GMT+08"))
             if (variant.buildType.name == 'debug') {
-                outputFileName = "debug_jianjia_device_V${variant.versionName}_${date}.apk"
+                outputFileName = "debug_jianjia_yaoshi_device_V${variant.versionName}_${date}.apk"
             }
             if (variant.buildType.name == 'release') {
-                outputFileName = "release_jianjia_device_V${variant.versionName}_${date}.apk"
+                outputFileName = "release_jianjia_yaoshi_device_V${variant.versionName}_${date}.apk"
             }
         }
     }
