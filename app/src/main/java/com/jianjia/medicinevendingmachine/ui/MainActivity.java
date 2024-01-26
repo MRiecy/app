@@ -472,36 +472,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         NetUtils.unRegisterNetworkMonitor();
     }
 
-    private void onClick2(View v) {
-        XLog.tag(TAG).i("取药");
-        viewBind.webAdvert.pauseTimers();
-        viewBind.webAdvert.setVisibility(View.GONE);
-        viewBind.btGoodsOut.setVisibility(View.GONE);
-        viewBind.inKeyboard.glKeyboard.setVisibility(View.VISIBLE);
-        mTimer = new CountDownTimer(30000, 1000) {
-            private void run() {
-                viewBind.inKeyboard.glKeyboard.setVisibility(View.GONE);
-                viewBind.inKeyboard.tvInput.setText("");
-                viewBind.webAdvert.resumeTimers();
-                viewBind.webAdvert.setVisibility(View.VISIBLE);
-                viewBind.btGoodsOut.setVisibility(View.VISIBLE);
-            }
-
-            @SuppressLint("SetTextI18n")
-            @Override
-            public void onTick(long millisUntilFinished) {
-                runOnUiThread(() -> viewBind.inKeyboard.tvBackTime.setText(" " + millisUntilFinished / 1000 + "s"));
-            }
-
-            @Override
-            public void onFinish() {
-                XLog.tag(TAG).i("输入取货码超时");
-                runOnUiThread(this::run);
-            }
-        }.start();
-    }
-
-
     class MyWebViewClient extends WebViewClient {
         @Override
         public boolean shouldOverrideUrlLoading(@NonNull WebView view, String url) {
