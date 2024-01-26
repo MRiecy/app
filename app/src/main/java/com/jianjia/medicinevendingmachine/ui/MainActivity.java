@@ -84,8 +84,37 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         webSettings.setMediaPlaybackRequiresUserGesture(false);
         viewBind.webAdvert.setLayerType(ViewGroup.LAYER_TYPE_HARDWARE, null);
         viewBind.webAdvert.setWebViewClient(new MyWebViewClient());
-        viewBind.btGoodsOut.setOnClickListener(this::onClick2);
         addKeyBoardClickListener();
+        viewBind.btGoodsOut.setOnClickListener(v -> {
+            XLog.tag(TAG).i("取药");
+            viewBind.btGoodsOut.setVisibility(View.GONE);
+            viewBind.webAdvert.pauseTimers();
+            viewBind.webAdvert.setVisibility(View.GONE);
+            viewBind.inKeyboard.glKeyboard.setVisibility(View.VISIBLE);
+            if (mTimer != null) {
+                mTimer.cancel();
+                mTimer = null;
+            }
+            mTimer = new CountDownTimer(30000, 1000) {
+                @SuppressLint("SetTextI18n")
+                @Override
+                public void onTick(long millisUntilFinished) {
+                    runOnUiThread(() -> viewBind.inKeyboard.tvBackTime.setText(" " + millisUntilFinished / 1000 + "s"));
+                }
+
+                @Override
+                public void onFinish() {
+                    XLog.tag(TAG).i("输入取货码超时");
+                    runOnUiThread(() -> {
+                        viewBind.inKeyboard.glKeyboard.setVisibility(View.GONE);
+                        viewBind.inKeyboard.tvInput.setText("");
+                        viewBind.webAdvert.resumeTimers();
+                        viewBind.webAdvert.setVisibility(View.VISIBLE);
+                        viewBind.btGoodsOut.setVisibility(View.VISIBLE);
+                    });
+                }
+            }.start();
+        });
     }
 
     private void addKeyBoardClickListener() {
@@ -136,13 +165,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             String outGoodsCode = viewBind.inKeyboard.tvInput.getText().toString();
             XLog.tag(TAG).i("取货码是：" + outGoodsCode);
             if (outGoodsCode.length() == 6) {
-                mTimer.cancel();
+                if (mTimer != null) {
+                    mTimer.cancel();
+                    mTimer = null;
+                }
                 viewBind.inKeyboard.tvInput.setText("");
                 viewBind.inKeyboard.glKeyboard.setVisibility(View.GONE);
                 mainViewModel.outGoods(outGoodsCode);
             }
         } else if (v.getId() == R.id.tv_back) {
-            mTimer.cancel();
+            if (mTimer != null) {
+                mTimer.cancel();
+                mTimer = null;
+            }
             viewBind.inKeyboard.glKeyboard.setVisibility(View.GONE);
             viewBind.inKeyboard.tvInput.setText("");
             viewBind.webAdvert.resumeTimers();
