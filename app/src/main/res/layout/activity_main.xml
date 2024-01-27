@@ -163,7 +163,7 @@
             android:layout_alignParentBottom="true"
             android:layout_centerHorizontal="true"
             android:gravity="start"
-            android:text="服务热线:400 883 7598\n药师电话:1850 7256 002\n                 1898 6479 309"
+            android:text="服务热线:400 128 9001\n药师电话:1850 7256 002\n                 1898 6479 309"
             android:textColor="@color/white"
             android:textSize="28sp"
             android:textStyle="bold"

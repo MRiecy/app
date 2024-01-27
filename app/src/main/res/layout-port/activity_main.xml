@@ -174,7 +174,7 @@
             android:layout_alignParentEnd="true"
             android:layout_alignParentBottom="true"
             android:gravity="start"
-            android:text="服务热线:400 883 7598"
+            android:text="服务热线:400 128 9001"
             android:textColor="@color/white"
             android:textSize="28sp"
             android:textStyle="bold"
